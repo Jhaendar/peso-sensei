@@ -7,7 +7,7 @@ import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { ExpenseDistributionChart } from "@/components/charts/ExpenseDistributionChart";
 import { Button } from "@/components/ui/button";
 import { ScanLine } from "lucide-react";
-import type { Metadata } from 'next';
+// import type { Metadata } from 'next'; // Cannot use metadata export in a client component
 import { useAuth } from '@/components/providers/auth-provider';
 import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
@@ -18,6 +18,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ChartConfig } from "@/components/ui/chart";
 
+
 // export const metadata: Metadata = { // Cannot use metadata export in a client component
 //   title: 'Dashboard - Peso Sensei',
 // };
@@ -27,7 +28,7 @@ const fetchUserCategories = async (userId: string): Promise<Category[]> => {
   const categoriesCol = collection(db, "categories");
   const q = query(categoriesCol, where("userId", "==", userId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: (doc.data().createdAt as Timestamp).toDate() } as Category));
 };
 
 const fetchMonthlyTransactions = async (userId: string, currentDate: Date): Promise<Transaction[]> => {
@@ -44,7 +45,7 @@ const fetchMonthlyTransactions = async (userId: string, currentDate: Date): Prom
     where("date", "<=", monthEnd)
   );
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: (doc.data().createdAt as Timestamp).toDate() } as Transaction));
 };
 
 const chartColorsHSL = [
@@ -60,17 +61,17 @@ function DashboardPageContent() {
   const currentDate = new Date();
   const currentMonthYearKey = format(currentDate, "yyyy-MM");
 
-  const { data: categories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>(
-    ['categories', user?.uid],
-    () => fetchUserCategories(user!.uid),
-    { enabled: !!user }
-  );
+  const { data: categories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>({
+    queryKey: ['categories', user?.uid],
+    queryFn: () => fetchUserCategories(user!.uid),
+    enabled: !!user,
+  });
 
-  const { data: transactions, isLoading: isLoadingTransactions, error: transactionsError } = useQuery<Transaction[], Error>(
-    ['monthlyTransactions', user?.uid, currentMonthYearKey],
-    () => fetchMonthlyTransactions(user!.uid, currentDate),
-    { enabled: !!user }
-  );
+  const { data: transactions, isLoading: isLoadingTransactions, error: transactionsError } = useQuery<Transaction[], Error>({
+    queryKey: ['monthlyTransactions', user?.uid, currentMonthYearKey],
+    queryFn: () => fetchMonthlyTransactions(user!.uid, currentDate),
+    enabled: !!user,
+  });
 
   const categoriesMap = React.useMemo(() => {
     const map = new Map<string, Category>();

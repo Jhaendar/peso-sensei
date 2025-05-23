@@ -113,7 +113,7 @@ export function TransactionForm() {
               control={form.control}
               name="type"
               render={({ field }) => (
-                <FormItem className="grid grid-cols-[max-content_1fr] items-center gap-x-3">
+                <FormItem className="grid grid-cols-[8rem_1fr] items-center gap-x-3">
                   <FormLabel>Type</FormLabel>
                   <div className="space-y-1">
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -137,7 +137,7 @@ export function TransactionForm() {
               control={form.control}
               name="amount"
               render={({ field }) => (
-                <FormItem className="grid grid-cols-[max-content_1fr] items-center gap-x-3">
+                <FormItem className="grid grid-cols-[8rem_1fr] items-center gap-x-3">
                   <FormLabel>Amount (PHP)</FormLabel>
                   <div className="space-y-1">
                     <FormControl>
@@ -153,7 +153,7 @@ export function TransactionForm() {
               control={form.control}
               name="categoryId"
               render={({ field }) => (
-                <FormItem className="grid grid-cols-[max-content_1fr] items-center gap-x-3">
+                <FormItem className="grid grid-cols-[8rem_1fr] items-center gap-x-3">
                   <FormLabel>Category</FormLabel>
                   <div className="space-y-1">
                     <Select onValueChange={field.onChange} value={field.value} disabled={availableCategories.length === 0}>
@@ -180,7 +180,7 @@ export function TransactionForm() {
               control={form.control}
               name="date"
               render={({ field }) => (
-                <FormItem className="grid grid-cols-[max-content_1fr] items-center gap-x-3">
+                <FormItem className="grid grid-cols-[8rem_1fr] items-center gap-x-3">
                   <FormLabel>Date</FormLabel>
                   <div className="space-y-1">
                     <Popover>

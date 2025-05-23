@@ -9,8 +9,8 @@ import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'; // Added SheetHeader and SheetTitle
-import { Menu, LogOut, LayoutDashboard, ListChecks } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Menu, LogOut, LayoutDashboard, ListChecks, ListFilter } from 'lucide-react';
 
 export function Navbar() {
   const { user } = useAuth();
@@ -29,6 +29,7 @@ export function Navbar() {
 
   const navLinks = [
     { href: '/', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
+    { href: '/transactions', label: 'Transactions', icon: <ListFilter className="h-5 w-5" /> },
     { href: '/categories', label: 'Categories', icon: <ListChecks className="h-5 w-5" /> },
   ];
 
@@ -75,7 +76,7 @@ export function Navbar() {
                 <SheetHeader>
                   <SheetTitle className="sr-only">Main Menu</SheetTitle>
                 </SheetHeader>
-                <div className="flex flex-col gap-4 p-4 pt-0"> {/* Adjusted padding-top as title is in header */}
+                <div className="flex flex-col gap-4 p-4 pt-0">
                   <Link href="/" className="flex items-center gap-2 mb-4">
                     <Logo />
                     <span className="font-semibold text-lg">Peso Sensei</span>

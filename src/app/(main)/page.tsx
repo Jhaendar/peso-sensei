@@ -1,3 +1,4 @@
+
 import { MiniDashboard } from "@/components/dashboard/MiniDashboard";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { ExpenseDistributionChart } from "@/components/charts/ExpenseDistributionChart";
@@ -33,7 +34,8 @@ export default function DashboardPage() {
             Scan Receipt with AI (Future)
           </Button>
         </div>
-        <div className="lg:col-span-2 order-1 lg:order-2">
+        {/* The ExpenseDistributionChart will be hidden on screens smaller than lg (1024px) */}
+        <div className="hidden lg:block lg:col-span-2 order-1 lg:order-2">
           <ExpenseDistributionChart />
         </div>
       </div>

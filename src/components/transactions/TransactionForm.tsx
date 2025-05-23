@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -96,18 +97,18 @@ export function TransactionForm() {
 
   return (
     <Card className="w-full shadow-lg">
-      <CardHeader>
-        <CardTitle className="text-xl font-semibold flex items-center">
-          {selectedType === "income" ? <Landmark className="mr-2 h-6 w-6 text-green-500" /> : <ShoppingCart className="mr-2 h-6 w-6 text-red-500" />}
+      <CardHeader className="px-4 pb-3 pt-4 sm:p-6 sm:pb-2">
+        <CardTitle className="text-lg sm:text-xl font-semibold flex items-center">
+          {selectedType === "income" ? <Landmark className="mr-2 h-5 w-5 sm:h-6 sm:w-6 text-green-500" /> : <ShoppingCart className="mr-2 h-5 w-5 sm:h-6 sm:w-6 text-red-500" />}
           Add New Transaction
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs sm:text-sm">
           Quickly record your income or expenses.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-4 pt-0 pb-4 sm:p-6 sm:pt-0">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5">
             <FormField
               control={form.control}
               name="type"

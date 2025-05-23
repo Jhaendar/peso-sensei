@@ -18,14 +18,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  env: {
-    NEXT_PUBLIC_FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
-    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.FIREBASE_STORAGE_BUCKET,
-    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.FIREBASE_MESSAGING_SENDER_ID,
-    NEXT_PUBLIC_FIREBASE_APP_ID: process.env.FIREBASE_APP_ID,
-  }
+  // The env block below was removed as Next.js automatically handles
+  // environment variables prefixed with NEXT_PUBLIC_
+  // Ensure your Firebase config variables (e.g., NEXT_PUBLIC_FIREBASE_API_KEY)
+  // are set in your .env.local file or hosting environment.
 };
 
 export default nextConfig;

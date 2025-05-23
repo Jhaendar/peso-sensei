@@ -1,14 +1,12 @@
 import type { Metadata } from 'next';
-import { GeistSans } from 'geist/font/sans'; // Corrected import from geist/font/sans
+import { GeistSans } from 'geist/font/sans';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/components/providers/auth-provider';
 import { FirebaseProvider } from '@/components/providers/firebase-provider';
 
-const geistSans = GeistSans({ 
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
+// The GeistSans object from 'geist/font/sans' is used directly.
+// No need to call it as a function.
 
 export const metadata: Metadata = {
   title: 'Peso Sensei',
@@ -22,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} font-sans antialiased`}>
+      <body className={`${GeistSans.variable} font-sans antialiased`}>
         <FirebaseProvider>
           <AuthProvider>
             {children}

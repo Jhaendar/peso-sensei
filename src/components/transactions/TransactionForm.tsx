@@ -27,11 +27,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Landmark, ShoppingCart, Coins, PencilLine } from "lucide-react";
+import { CalendarIcon, Landmark, ShoppingCart, Coins } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import React from "react";
-
+import { addDoc, collection, Timestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/components/providers/auth-provider";
 
 const formSchema = z.object({
   type: z.enum(["income", "expense"], { required_error: "Please select a transaction type." }),
@@ -42,7 +44,7 @@ const formSchema = z.object({
   description: z.string().optional(),
 });
 
-// Mock categories for now
+// Mock categories for now - these should eventually come from Firestore
 const mockCategories: Category[] = [
   { id: 'cat_income_salary', name: 'Salary', type: 'income', createdAt: new Date(), userId: 'mockUser' },
   { id: 'cat_income_freelance', name: 'Freelance', type: 'income', createdAt: new Date(), userId: 'mockUser' },
@@ -55,6 +57,7 @@ const mockCategories: Category[] = [
 
 export function TransactionForm() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -72,7 +75,6 @@ export function TransactionForm() {
   React.useEffect(() => {
     const currentType = form.watch("type");
     setAvailableCategories(mockCategories.filter(cat => cat.type === currentType));
-    // Reset category if type changes and current category is not valid for new type
     const currentCategoryId = form.getValues("categoryId");
     if (currentCategoryId && !mockCategories.find(cat => cat.id === currentCategoryId && cat.type === currentType)) {
       form.setValue("categoryId", "");
@@ -81,18 +83,38 @@ export function TransactionForm() {
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // Placeholder for actual submission logic
-    console.log({
-      ...values,
-      date: format(values.date, "yyyy-MM-dd"), // Format date for submission
-    });
-    toast({
-      title: "Transaction Added (Mock)",
-      description: `Title: ${values.title}, Type: ${values.type}, Amount: ${values.amount}, Category ID: ${values.categoryId}`,
-    });
-    form.reset(); // Reset form after submission
-     // Refilter categories for the default type after reset
-    setAvailableCategories(mockCategories.filter(cat => cat.type === form.getValues("type")));
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "You must be logged in to add a transaction.",
+      });
+      return;
+    }
+
+    try {
+      const transactionData = {
+        ...values,
+        date: format(values.date, "yyyy-MM-dd"), // Format date for submission
+        userId: user.uid,
+        createdAt: Timestamp.now(),
+      };
+      await addDoc(collection(db, "transactions"), transactionData);
+      
+      toast({
+        title: "Transaction Added",
+        description: `Your ${values.type} "${values.title}" has been successfully recorded.`,
+      });
+      form.reset(); 
+      setAvailableCategories(mockCategories.filter(cat => cat.type === form.getValues("type")));
+    } catch (error) {
+      console.error("Error adding transaction: ", error);
+      toast({
+        variant: "destructive",
+        title: "Error Adding Transaction",
+        description: "Could not save the transaction. Please try again.",
+      });
+    }
   }
   
   const selectedType = form.watch("type");
@@ -251,7 +273,7 @@ export function TransactionForm() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={form.formState.isSubmitting}>
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={form.formState.isSubmitting || !user}>
                <Coins className="mr-2 h-5 w-5" /> {form.formState.isSubmitting ? "Adding..." : "Add Transaction"}
             </Button>
           </form>
@@ -260,3 +282,5 @@ export function TransactionForm() {
     </Card>
   );
 }
+
+    

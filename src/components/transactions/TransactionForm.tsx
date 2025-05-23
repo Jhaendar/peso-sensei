@@ -31,9 +31,10 @@ import { CalendarIcon, Landmark, ShoppingCart, Coins } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import React from "react";
-import { addDoc, collection, Timestamp } from "firebase/firestore";
+import { addDoc, collection, Timestamp, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const formSchema = z.object({
   type: z.enum(["income", "expense"], { required_error: "Please select a transaction type." }),
@@ -44,18 +45,15 @@ const formSchema = z.object({
   description: z.string().optional(),
 });
 
-// Mock categories for now - these should eventually come from Firestore
-const mockCategories: Category[] = [
-  { id: 'cat_income_salary', name: 'Salary', type: 'income', createdAt: Timestamp.now(), userId: 'mockUser' },
-  { id: 'cat_income_freelance', name: 'Freelance', type: 'income', createdAt: Timestamp.now(), userId: 'mockUser' },
-  { id: 'cat_expense_food', name: 'Food & Dining', type: 'expense', createdAt: Timestamp.now(), userId: 'mockUser' },
-  { id: 'cat_expense_transport', name: 'Transportation', type: 'expense', createdAt: Timestamp.now(), userId: 'mockUser' },
-  { id: 'cat_expense_housing', name: 'Housing', type: 'expense', createdAt: Timestamp.now(), userId: 'mockUser' },
-  { id: 'cat_expense_utilities', name: 'Utilities', type: 'expense', createdAt: Timestamp.now(), userId: 'mockUser' },
-];
+const fetchUserCategories = async (userId: string, type: 'income' | 'expense'): Promise<Category[]> => {
+  if (!userId || !db) return [];
+  const categoriesCol = collection(db, "categories");
+  const q = query(categoriesCol, where("userId", "==", userId), where("type", "==", type));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: (doc.data().createdAt as Timestamp).toDate() } as Category));
+};
 
-
-export function TransactionForm() {
+function TransactionFormContent() {
   const { toast } = useToast();
   const { user } = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
@@ -70,16 +68,22 @@ export function TransactionForm() {
     },
   });
 
-  const [availableCategories, setAvailableCategories] = React.useState<Category[]>([]);
+  const selectedType = form.watch("type");
+
+  const { data: availableCategories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>({
+    queryKey: ['categories', user?.uid, selectedType],
+    queryFn: () => fetchUserCategories(user!.uid, selectedType),
+    enabled: !!user && !!db,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   React.useEffect(() => {
-    const currentType = form.watch("type");
-    setAvailableCategories(mockCategories.filter(cat => cat.type === currentType));
+    // Reset categoryId if the selected category is no longer in the filtered list
     const currentCategoryId = form.getValues("categoryId");
-    if (currentCategoryId && !mockCategories.find(cat => cat.id === currentCategoryId && cat.type === currentType)) {
+    if (currentCategoryId && availableCategories && !availableCategories.find(cat => cat.id === currentCategoryId)) {
       form.setValue("categoryId", "");
     }
-  }, [form.watch("type"), form]);
+  }, [availableCategories, form]);
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -88,6 +92,14 @@ export function TransactionForm() {
         variant: "destructive",
         title: "Authentication Error",
         description: "You must be logged in to add a transaction.",
+      });
+      return;
+    }
+    if (!db) {
+      toast({
+        variant: "destructive",
+        title: "Database Error",
+        description: "Could not connect to the database. Please try again later.",
       });
       return;
     }
@@ -105,16 +117,16 @@ export function TransactionForm() {
         title: "Transaction Added",
         description: `Your ${values.type} "${values.title}" has been successfully recorded.`,
       });
-      form.reset({ // Reset form with default values
+      form.reset({ 
         type: "expense",
         title: "",
         amount: 0,
         categoryId: "",
         date: new Date(),
         description: "",
-      }); 
-      // Reset available categories based on the (now reset) form's type value
-      setAvailableCategories(mockCategories.filter(cat => cat.type === form.getValues("type")));
+      });
+      // Consider refetching dashboard data if this form is on the dashboard page
+      // queryClient.invalidateQueries(['monthlyTransactions', user?.uid, format(new Date(), "yyyy-MM")]);
     } catch (error) {
       console.error("Error adding transaction: ", error);
       toast({
@@ -125,8 +137,6 @@ export function TransactionForm() {
     }
   }
   
-  const selectedType = form.watch("type");
-
   return (
     <Card className="w-full shadow-lg">
       <CardHeader className="px-4 pb-3 pt-4 sm:px-6 sm:pb-2">
@@ -191,7 +201,7 @@ export function TransactionForm() {
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="end"> {/* Changed align to "end" */}
+                      <PopoverContent className="w-auto p-0" align="end">
                         <Calendar
                           mode="single"
                           selected={field.value}
@@ -248,21 +258,30 @@ export function TransactionForm() {
                 <FormItem>
                   <FormLabel>Category</FormLabel>
                   <div className="space-y-1">
-                    <Select onValueChange={field.onChange} value={field.value} disabled={availableCategories.length === 0}>
+                    <Select 
+                        onValueChange={field.onChange} 
+                        value={field.value} 
+                        disabled={isLoadingCategories || !availableCategories || availableCategories.length === 0}
+                    >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={availableCategories.length === 0 ? "No categories for this type" : "Select a category"} />
+                          <SelectValue placeholder={
+                            isLoadingCategories ? "Loading categories..." : 
+                            !availableCategories || availableCategories.length === 0 ? `No ${selectedType} categories` : 
+                            "Select a category"
+                          } />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {availableCategories.map(category => (
-                          <SelectItem key={category.id} value={category.id}>
+                        {availableCategories && availableCategories.map(category => (
+                          <SelectItem key={category.id} value={category.id!}>
                             {category.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
+                    {categoriesError && <FormMessage>Error loading categories.</FormMessage>}
+                    <FormMessage /> 
                   </div>
                 </FormItem>
               )}
@@ -281,7 +300,7 @@ export function TransactionForm() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={form.formState.isSubmitting || !user}>
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={form.formState.isSubmitting || !user || !db}>
                <Coins className="mr-2 h-5 w-5" /> {form.formState.isSubmitting ? "Adding..." : "Add Transaction"}
             </Button>
           </form>
@@ -291,3 +310,12 @@ export function TransactionForm() {
   );
 }
 
+const queryClient = new QueryClient();
+
+export function TransactionForm() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TransactionFormContent />
+    </QueryClientProvider>
+  );
+}

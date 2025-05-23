@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -13,7 +14,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import type { Category } from "@/lib/types";
-import { PlusCircle, Trash2, Edit3, ListChecks, Tag } from 'lucide-react';
+import { PlusCircle, Trash2, Edit3, ListChecks, Tag, AlertTriangle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,37 +26,102 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useAuth } from '@/components/providers/auth-provider';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, updateDoc, deleteDoc, query, where, getDocs, doc, Timestamp } from 'firebase/firestore';
+import { useQuery, useMutation, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Mock categories for now
-const initialMockCategories: Category[] = [
-  { id: 'cat_income_salary', name: 'Salary', type: 'income', createdAt: new Date(), userId: 'mockUser' },
-  { id: 'cat_expense_food', name: 'Food & Dining', type: 'expense', createdAt: new Date(), userId: 'mockUser' },
-  { id: 'cat_expense_transport', name: 'Transportation', type: 'expense', createdAt: new Date(), userId: 'mockUser' },
-];
+const fetchUserCategories = async (userId: string): Promise<Category[]> => {
+  if (!userId || !db) return [];
+  const categoriesCol = collection(db, "categories");
+  const q = query(categoriesCol, where("userId", "==", userId));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      ...doc.data(), 
+      createdAt: (doc.data().createdAt as Timestamp).toDate() 
+    } as Category)).sort((a, b) => a.name.localeCompare(b.name));
+};
 
-export function CategoryManager() {
+function CategoryManagerContent() {
   const { toast } = useToast();
-  const [categories, setCategories] = useState<Category[]>(initialMockCategories);
+  const { user } = useAuth();
+  const queryClient = new QueryClient(); // Re-use the one from Provider if available globally
+
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryType, setNewCategoryType] = useState<'income' | 'expense'>("expense");
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
+  const { data: categories, isLoading, error, refetch } = useQuery<Category[], Error>({
+    queryKey: ['categories', user?.uid],
+    queryFn: () => fetchUserCategories(user!.uid),
+    enabled: !!user && !!db,
+  });
 
-  const handleAddCategory = () => {
+  const addCategoryMutation = useMutation({
+    mutationFn: async (newCategoryData: Omit<Category, 'id' | 'createdAt' | 'userId'>) => {
+      if (!user || !db) throw new Error("User or DB not available");
+      return addDoc(collection(db, "categories"), {
+        ...newCategoryData,
+        userId: user.uid,
+        createdAt: Timestamp.now(),
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Category Added", description: `${newCategoryName} (${newCategoryType}) has been added.` });
+      setNewCategoryName("");
+      setNewCategoryType("expense"); // Reset to default
+      refetch(); // Refetch categories after adding
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", title: "Error Adding Category", description: err.message });
+    },
+  });
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: async (categoryToUpdate: { id: string; name: string; type: 'income' | 'expense' }) => {
+      if (!user || !db) throw new Error("User or DB not available");
+      const categoryRef = doc(db, "categories", categoryToUpdate.id);
+      return updateDoc(categoryRef, { name: categoryToUpdate.name, type: categoryToUpdate.type });
+    },
+    onSuccess: (_, variables) => {
+      toast({ title: "Category Updated", description: `${variables.name} has been updated.` });
+      setEditingCategory(null);
+      setNewCategoryName("");
+      setNewCategoryType("expense");
+      refetch();
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", title: "Error Updating Category", description: err.message });
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (categoryId: string) => {
+      if (!user || !db) throw new Error("User or DB not available");
+      const categoryRef = doc(db, "categories", categoryId);
+      return deleteDoc(categoryRef);
+    },
+    onSuccess: () => {
+      toast({ title: "Category Deleted", description: "The category has been removed." });
+      refetch();
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", title: "Error Deleting Category", description: err.message });
+    },
+  });
+
+  const handleAddOrUpdateCategory = () => {
     if (!newCategoryName.trim()) {
       toast({ variant: "destructive", title: "Error", description: "Category name cannot be empty." });
       return;
     }
-    const newCategory: Category = {
-      id: `cat_${Date.now()}`, // Simple unique ID for mock
-      name: newCategoryName,
-      type: newCategoryType,
-      createdAt: new Date(),
-      userId: 'mockUser', // Placeholder
-    };
-    setCategories([...categories, newCategory]);
-    setNewCategoryName("");
-    toast({ title: "Category Added", description: `${newCategory.name} (${newCategory.type}) has been added.` });
+    if (editingCategory) {
+      updateCategoryMutation.mutate({ id: editingCategory.id!, name: newCategoryName, type: newCategoryType });
+    } else {
+      addCategoryMutation.mutate({ name: newCategoryName, type: newCategoryType });
+    }
   };
   
   const handleEditCategory = (category: Category) => {
@@ -64,23 +130,31 @@ export function CategoryManager() {
     setNewCategoryType(category.type);
   };
 
-  const handleSaveEdit = () => {
-    if (!editingCategory || !newCategoryName.trim()) {
-      toast({ variant: "destructive", title: "Error", description: "Category name cannot be empty." });
-      return;
-    }
-    setCategories(categories.map(cat => 
-      cat.id === editingCategory.id ? { ...cat, name: newCategoryName, type: newCategoryType } : cat
-    ));
+  const handleCancelEdit = () => {
     setEditingCategory(null);
     setNewCategoryName("");
-    toast({ title: "Category Updated", description: `${newCategoryName} has been updated.` });
-  };
+    setNewCategoryType("expense");
+  }
 
-  const handleDeleteCategory = (categoryId: string) => {
-    setCategories(categories.filter(cat => cat.id !== categoryId));
-    toast({ title: "Category Deleted", description: "The category has been removed." });
-  };
+  if (!user && !isLoading) {
+      return <p className="text-center text-muted-foreground p-4">Please log in to manage categories.</p>
+  }
+
+  if (!db && user) {
+    return (
+      <Card className="shadow-lg m-auto max-w-md">
+        <CardHeader>
+          <CardTitle className="flex items-center text-destructive">
+            <AlertTriangle className="mr-2 h-6 w-6" />
+            Database Connection Error
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Could not connect to the database. Please ensure Firebase is configured correctly and try again later.</p>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -99,11 +173,16 @@ export function CategoryManager() {
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
               placeholder="e.g., Groceries, Salary"
+              disabled={addCategoryMutation.isPending || updateCategoryMutation.isPending}
             />
           </div>
           <div>
             <label htmlFor="categoryType" className="block text-sm font-medium text-foreground mb-1">Category Type</label>
-            <Select value={newCategoryType} onValueChange={(value: 'income' | 'expense') => setNewCategoryType(value)}>
+            <Select 
+                value={newCategoryType} 
+                onValueChange={(value: 'income' | 'expense') => setNewCategoryType(value)}
+                disabled={addCategoryMutation.isPending || updateCategoryMutation.isPending}
+            >
               <SelectTrigger id="categoryType">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
@@ -113,16 +192,23 @@ export function CategoryManager() {
               </SelectContent>
             </Select>
           </div>
-          {editingCategory ? (
-            <div className="flex space-x-2">
-              <Button onClick={handleSaveEdit} className="w-full bg-primary hover:bg-primary/90">Save Changes</Button>
-              <Button variant="outline" onClick={() => { setEditingCategory(null); setNewCategoryName(""); }} className="w-full">Cancel</Button>
-            </div>
-          ) : (
-            <Button onClick={handleAddCategory} className="w-full bg-accent hover:bg-accent/90">
-              <PlusCircle className="mr-2 h-5 w-5" /> Add Category
+          <div className="flex space-x-2">
+            <Button 
+                onClick={handleAddOrUpdateCategory} 
+                className="w-full bg-primary hover:bg-primary/90"
+                disabled={addCategoryMutation.isPending || updateCategoryMutation.isPending || !newCategoryName.trim()}
+            >
+              {editingCategory 
+                ? (updateCategoryMutation.isPending ? "Saving..." : "Save Changes") 
+                : (addCategoryMutation.isPending ? "Adding..." : <><PlusCircle className="mr-2 h-5 w-5" /> Add Category</>)
+              }
             </Button>
-          )}
+            {editingCategory && (
+              <Button variant="outline" onClick={handleCancelEdit} className="w-full" disabled={updateCategoryMutation.isPending}>
+                Cancel
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -135,9 +221,18 @@ export function CategoryManager() {
           <CardDescription>Manage your income and expense categories.</CardDescription>
         </CardHeader>
         <CardContent>
-          {categories.length === 0 ? (
+          {isLoading && (
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full rounded-md" />
+              <Skeleton className="h-10 w-full rounded-md" />
+              <Skeleton className="h-10 w-full rounded-md" />
+            </div>
+          )}
+          {error && <p className="text-destructive">Error loading categories: {error.message}</p>}
+          {!isLoading && !error && categories && categories.length === 0 && (
             <p className="text-muted-foreground">No categories found. Add some above!</p>
-          ) : (
+          )}
+          {!isLoading && !error && categories && categories.length > 0 && (
             <ul className="space-y-3">
               {categories.map(category => (
                 <li key={category.id} className="flex items-center justify-between p-3 bg-secondary/30 rounded-md shadow-sm">
@@ -148,12 +243,12 @@ export function CategoryManager() {
                     </span>
                   </div>
                   <div className="space-x-2">
-                    <Button variant="ghost" size="icon" onClick={() => handleEditCategory(category)} aria-label={`Edit ${category.name}`}>
+                    <Button variant="ghost" size="icon" onClick={() => handleEditCategory(category)} aria-label={`Edit ${category.name}`} disabled={deleteCategoryMutation.isPending}>
                       <Edit3 className="h-4 w-4 text-blue-600" />
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" aria-label={`Delete ${category.name}`}>
+                        <Button variant="ghost" size="icon" aria-label={`Delete ${category.name}`} disabled={deleteCategoryMutation.isPending}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </AlertDialogTrigger>
@@ -166,8 +261,12 @@ export function CategoryManager() {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeleteCategory(category.id)} className="bg-destructive hover:bg-destructive/90">
-                            Delete
+                          <AlertDialogAction 
+                            onClick={() => deleteCategoryMutation.mutate(category.id!)} 
+                            className="bg-destructive hover:bg-destructive/90"
+                            disabled={deleteCategoryMutation.isPending}
+                          >
+                            {deleteCategoryMutation.isPending ? "Deleting..." : "Delete"}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -180,5 +279,16 @@ export function CategoryManager() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Create a new QueryClient instance for this page
+const queryClientInstance = new QueryClient();
+
+export function CategoryManager() {
+  return (
+    <QueryClientProvider client={queryClientInstance}>
+      <CategoryManagerContent />
+    </QueryClientProvider>
   );
 }

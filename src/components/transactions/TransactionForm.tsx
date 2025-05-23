@@ -37,10 +37,10 @@ import { useAuth } from "@/components/providers/auth-provider";
 
 const formSchema = z.object({
   type: z.enum(["income", "expense"], { required_error: "Please select a transaction type." }),
+  date: z.date({ required_error: "Please select a date." }),
   title: z.string().min(1, { message: "Please enter a title." }),
   amount: z.coerce.number().positive({ message: "Amount must be positive." }),
   categoryId: z.string().min(1, { message: "Please select a category." }),
-  date: z.date({ required_error: "Please select a date." }),
   description: z.string().optional(),
 });
 
@@ -105,7 +105,14 @@ export function TransactionForm() {
         title: "Transaction Added",
         description: `Your ${values.type} "${values.title}" has been successfully recorded.`,
       });
-      form.reset(); 
+      form.reset({ // Reset form with default values
+        type: "expense",
+        title: "",
+        amount: 0,
+        categoryId: "",
+        date: new Date(),
+        description: "",
+      }); 
       // Reset available categories based on the (now reset) form's type value
       setAvailableCategories(mockCategories.filter(cat => cat.type === form.getValues("type")));
     } catch (error) {
@@ -133,7 +140,7 @@ export function TransactionForm() {
       </CardHeader>
       <CardContent className="px-4 pt-2 pb-4 sm:px-6 sm:pt-2">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2 sm:space-y-3"> {/* Reduced mobile spacing */}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2 sm:space-y-3">
             <FormField
               control={form.control}
               name="type"
@@ -184,7 +191,7 @@ export function TransactionForm() {
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
+                      <PopoverContent className="w-auto p-0" align="end"> {/* Changed align to "end" */}
                         <Calendar
                           mode="single"
                           selected={field.value}
@@ -222,7 +229,7 @@ export function TransactionForm() {
               control={form.control}
               name="amount"
               render={({ field }) => (
-                <FormItem> {/* Label above input */}
+                <FormItem>
                   <FormLabel>Amount (PHP)</FormLabel>
                   <div className="space-y-1">
                     <FormControl>
@@ -238,7 +245,7 @@ export function TransactionForm() {
               control={form.control}
               name="categoryId"
               render={({ field }) => (
-                <FormItem> {/* Label above input */}
+                <FormItem>
                   <FormLabel>Category</FormLabel>
                   <div className="space-y-1">
                     <Select onValueChange={field.onChange} value={field.value} disabled={availableCategories.length === 0}>
@@ -283,3 +290,4 @@ export function TransactionForm() {
     </Card>
   );
 }
+

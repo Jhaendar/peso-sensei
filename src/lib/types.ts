@@ -1,20 +1,23 @@
+import type { Timestamp } from 'firebase/firestore';
+
 export interface Transaction {
-  id: string;
+  id?: string; // Firestore document ID, will be populated after fetch
   type: 'income' | 'expense';
+  title: string;
   amount: number;
   categoryId: string;
-  categoryName?: string; // Optional, for display convenience
+  categoryName?: string; // Optional: Consider adding this during transaction creation for easier display
   date: string; // ISO date string e.g. "2024-07-28"
   description?: string;
-  createdAt: Date;
+  createdAt: Timestamp; // Firestore Timestamp
   userId: string;
 }
 
 export interface Category {
-  id: string;
+  id?: string; // Firestore document ID
   name: string;
   type: 'income' | 'expense';
-  createdAt: Date;
+  createdAt: Timestamp; // Firestore Timestamp
   userId: string;
 }
 
@@ -22,5 +25,5 @@ export interface Category {
 export interface ChartDataPoint {
   name: string; // Category name
   value: number; // Total amount for this category
-  fill?: string; // Optional color for pie slice
+  fill: string; // Color for pie slice (e.g., "hsl(var(--chart-1))")
 }

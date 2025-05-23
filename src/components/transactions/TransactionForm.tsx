@@ -27,7 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Landmark, ShoppingCart, Coins } from "lucide-react";
+import { CalendarIcon, Landmark, ShoppingCart, Coins, PencilLine } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import React from "react";
@@ -35,6 +35,7 @@ import React from "react";
 
 const formSchema = z.object({
   type: z.enum(["income", "expense"], { required_error: "Please select a transaction type." }),
+  title: z.string().min(1, { message: "Please enter a title." }),
   amount: z.coerce.number().positive({ message: "Amount must be positive." }),
   categoryId: z.string().min(1, { message: "Please select a category." }),
   date: z.date({ required_error: "Please select a date." }),
@@ -58,6 +59,7 @@ export function TransactionForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       type: "expense",
+      title: "",
       amount: 0,
       categoryId: "",
       date: new Date(),
@@ -86,7 +88,7 @@ export function TransactionForm() {
     });
     toast({
       title: "Transaction Added (Mock)",
-      description: `Type: ${values.type}, Amount: ${values.amount}, Category ID: ${values.categoryId}`,
+      description: `Title: ${values.title}, Type: ${values.type}, Amount: ${values.amount}, Category ID: ${values.categoryId}`,
     });
     form.reset(); // Reset form after submission
      // Refilter categories for the default type after reset
@@ -125,49 +127,6 @@ export function TransactionForm() {
                       <SelectContent>
                         <SelectItem value="income">Income</SelectItem>
                         <SelectItem value="expense">Expense</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </div>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem className="grid grid-cols-[8rem_1fr] items-center gap-x-3">
-                  <FormLabel>Amount (PHP)</FormLabel>
-                  <div className="space-y-1">
-                    <FormControl>
-                      <Input type="number" placeholder="0.00" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />
-                    </FormControl>
-                    <FormMessage />
-                  </div>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="categoryId"
-              render={({ field }) => (
-                <FormItem className="grid grid-cols-[8rem_1fr] items-center gap-x-3">
-                  <FormLabel>Category</FormLabel>
-                  <div className="space-y-1">
-                    <Select onValueChange={field.onChange} value={field.value} disabled={availableCategories.length === 0}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={availableCategories.length === 0 ? "No categories for this type" : "Select a category"} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {availableCategories.map(category => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -219,6 +178,65 @@ export function TransactionForm() {
                 </FormItem>
               )}
             />
+            
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-[8rem_1fr] items-center gap-x-3">
+                  <FormLabel>Title</FormLabel>
+                  <div className="space-y-1">
+                    <FormControl>
+                      <Input placeholder="e.g., Weekly Groceries" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-[8rem_1fr] items-center gap-x-3">
+                  <FormLabel>Amount (PHP)</FormLabel>
+                  <div className="space-y-1">
+                    <FormControl>
+                      <Input type="number" placeholder="0.00" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />
+                    </FormControl>
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="categoryId"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-[8rem_1fr] items-center gap-x-3">
+                  <FormLabel>Category</FormLabel>
+                  <div className="space-y-1">
+                    <Select onValueChange={field.onChange} value={field.value} disabled={availableCategories.length === 0}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={availableCategories.length === 0 ? "No categories for this type" : "Select a category"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableCategories.map(category => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
@@ -227,7 +245,7 @@ export function TransactionForm() {
                 <FormItem>
                   <FormLabel>Description (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="e.g., Groceries from SM" {...field} />
+                    <Textarea placeholder="e.g., Bought items from SM Supermarket including milk, bread, eggs..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

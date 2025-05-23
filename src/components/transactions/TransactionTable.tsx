@@ -42,6 +42,11 @@ import { ChevronDown } from "lucide-react";
 
 const fetchUserCategories = async (userId: string): Promise<Category[]> => {
   if (!userId) return [];
+  if (!db) {
+    console.error("Firestore DB instance is not available for fetchUserCategories.");
+    // Potentially throw an error or return a specific state if db is critical here
+    return [];
+  }
   const categoriesCol = collection(db, "categories");
   const q = query(categoriesCol, where("userId", "==", userId));
   const snapshot = await getDocs(q);
@@ -50,6 +55,10 @@ const fetchUserCategories = async (userId: string): Promise<Category[]> => {
 
 const fetchAllUserTransactions = async (userId: string): Promise<Transaction[]> => {
   if (!userId) return [];
+  if (!db) {
+    console.error("Firestore DB instance is not available for fetchAllUserTransactions.");
+    return [];
+  }
   const transactionsCol = collection(db, "transactions");
   const q = query(transactionsCol, where("userId", "==", userId));
   const snapshot = await getDocs(q);
@@ -72,16 +81,16 @@ function TransactionTableContent() {
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
-  const { data: categories, isLoading: isLoadingCategories } = useQuery<Category[], Error>({
+  const { data: categories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>({
     queryKey: ['allUserCategories', user?.uid],
     queryFn: () => fetchUserCategories(user!.uid),
-    enabled: !!user,
+    enabled: !!user && !!db, // Also check if db is available
   });
 
-  const { data: transactions, isLoading: isLoadingTransactions } = useQuery<Transaction[], Error>({
+  const { data: transactions, isLoading: isLoadingTransactions, error: transactionsError } = useQuery<Transaction[], Error>({
     queryKey: ['allUserTransactions', user?.uid],
     queryFn: () => fetchAllUserTransactions(user!.uid),
-    enabled: !!user,
+    enabled: !!user && !!db, // Also check if db is available
   });
 
   const processedData = React.useMemo((): TransactionRow[] => {
@@ -111,6 +120,27 @@ function TransactionTableContent() {
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
+
+  if (!db && user) { // Check if db is not available after initial app load and user is present
+    return (
+      <div className="p-4 border rounded-md bg-destructive/10 text-destructive">
+        <p className="font-semibold">Firestore Connection Error</p>
+        <p>The application could not connect to the database. Please ensure Firebase is configured correctly and check the console for more details.</p>
+      </div>
+    )
+  }
+  
+  if (categoriesError || transactionsError) {
+    return (
+        <div className="p-4 border rounded-md bg-destructive/10 text-destructive">
+          <p className="font-semibold">Error loading transaction data:</p>
+          <pre className="text-xs whitespace-pre-wrap">
+            {categoriesError?.message || transactionsError?.message}
+            {categoriesError?.stack || transactionsError?.stack}
+          </pre>
+        </div>
+    );
+  }
 
   if (isLoadingCategories || (user && isLoadingTransactions && !transactions)) {
     return (

@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
@@ -11,30 +12,48 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Check if the essential API key is missing.
-// This log will appear in the server console during development if the key is not set.
+// This initial check helps identify missing API key early.
 if (!firebaseConfig.apiKey) {
   console.error(
-    "CRITICAL: Firebase API Key (NEXT_PUBLIC_FIREBASE_API_KEY) is missing or empty. " +
-    "Please ensure it is correctly set in your .env.local file or environment variables. " +
-    "Firebase will fail to initialize, leading to 'auth/invalid-api-key' errors."
+    "CRITICAL: Firebase API Key (NEXT_PUBLIC_FIREBASE_API_KEY) is missing or empty in environment variables. " +
+    "Firebase initialization will likely fail. Please check your .env.local file."
   );
 }
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
+let app: FirebaseApp | undefined;
+let auth: Auth | undefined;
+let db: Firestore | undefined;
 
-// Initialize Firebase, ensuring it's done only once across client/server.
-if (getApps().length === 0) {
-  // If firebaseConfig.apiKey is undefined here, initializeApp will throw an error.
-  // The console.error above should provide a clue to the user.
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApp(); // Use the existing app if already initialized.
+try {
+  if (getApps().length === 0) {
+    // This will throw an error if firebaseConfig.apiKey is invalid (e.g., "YOUR_..." placeholder)
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
+  }
+
+  if (app) {
+    auth = getAuth(app);
+    db = getFirestore(app);
+    if (!db) {
+      // This case should be rare if getFirestore itself doesn't throw
+      console.error("CRITICAL: Firestore DB instance (db) is undefined after Firebase app initialization. Firestore might not be enabled or properly configured in your Firebase project.");
+    }
+  } else {
+    // This case would be hit if getApp() returned undefined when apps exist, which is unlikely.
+    // Or if initializeApp itself failed and returned undefined (also unlikely, it usually throws).
+    console.error("CRITICAL: Firebase App instance (app) is undefined after attempting initialization.");
+  }
+} catch (error: any) {
+  console.error("CRITICAL: Firebase initialization failed with an error:", error.message);
+  console.error("Full error stack:", error.stack);
+  console.error("Firebase config used:", JSON.stringify({
+    apiKey: firebaseConfig.apiKey ? '********' : 'MISSING_OR_EMPTY', // Don't log full API key
+    authDomain: firebaseConfig.authDomain,
+    projectId: firebaseConfig.projectId,
+    // Add other config properties if needed for debugging, but be careful with sensitive info
+  }));
+  // app, auth, and db will remain undefined if an error is caught here.
 }
-
-auth = getAuth(app);
-db = getFirestore(app);
 
 export { app, auth, db };

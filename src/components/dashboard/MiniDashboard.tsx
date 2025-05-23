@@ -11,7 +11,7 @@ interface MiniDashboardProps {
 const StatCard: React.FC<{ title: string; value: number; icon: React.ReactNode; currency?: string }> = ({ title, value, icon, currency = "PHP" }) => (
   <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+      <CardTitle className="text-sm font-medium text-muted-foreground whitespace-nowrap">{title}</CardTitle>
       {icon}
     </CardHeader>
     <CardContent>
@@ -79,3 +79,4 @@ export function MiniDashboard({ totalIncome, totalExpenses, currentBalance }: Mi
     </section>
   );
 }
+

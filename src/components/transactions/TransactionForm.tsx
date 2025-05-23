@@ -97,7 +97,7 @@ export function TransactionForm() {
 
   return (
     <Card className="w-full shadow-lg">
-      <CardHeader className="px-4 pb-3 pt-4 sm:p-6 sm:pb-2">
+      <CardHeader className="px-4 pb-3 pt-4 sm:px-6 sm:pb-2">
         <CardTitle className="text-lg sm:text-xl font-semibold flex items-center">
           {selectedType === "income" ? <Landmark className="mr-2 h-5 w-5 sm:h-6 sm:w-6 text-green-500" /> : <ShoppingCart className="mr-2 h-5 w-5 sm:h-6 sm:w-6 text-red-500" />}
           Add New Transaction
@@ -106,27 +106,29 @@ export function TransactionForm() {
           Quickly record your income or expenses.
         </CardDescription>
       </CardHeader>
-      <CardContent className="px-4 pt-0 pb-4 sm:p-6 sm:pt-0">
+      <CardContent className="px-4 pt-2 pb-4 sm:px-6 sm:pt-2">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
             <FormField
               control={form.control}
               name="type"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="grid grid-cols-[max-content_1fr] items-center gap-x-3">
                   <FormLabel>Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select transaction type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="income">Income</SelectItem>
-                      <SelectItem value="expense">Expense</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
+                  <div className="space-y-1">
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select transaction type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="income">Income</SelectItem>
+                        <SelectItem value="expense">Expense</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </div>
                 </FormItem>
               )}
             />
@@ -135,12 +137,14 @@ export function TransactionForm() {
               control={form.control}
               name="amount"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="grid grid-cols-[max-content_1fr] items-center gap-x-3">
                   <FormLabel>Amount (PHP)</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="0.00" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />
-                  </FormControl>
-                  <FormMessage />
+                  <div className="space-y-1">
+                    <FormControl>
+                      <Input type="number" placeholder="0.00" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />
+                    </FormControl>
+                    <FormMessage />
+                  </div>
                 </FormItem>
               )}
             />
@@ -149,23 +153,25 @@ export function TransactionForm() {
               control={form.control}
               name="categoryId"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="grid grid-cols-[max-content_1fr] items-center gap-x-3">
                   <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={availableCategories.length === 0}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={availableCategories.length === 0 ? "No categories for this type" : "Select a category"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {availableCategories.map(category => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
+                  <div className="space-y-1">
+                    <Select onValueChange={field.onChange} value={field.value} disabled={availableCategories.length === 0}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={availableCategories.length === 0 ? "No categories for this type" : "Select a category"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableCategories.map(category => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </div>
                 </FormItem>
               )}
             />
@@ -174,40 +180,42 @@ export function TransactionForm() {
               control={form.control}
               name="date"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem className="grid grid-cols-[max-content_1fr] items-center gap-x-3">
                   <FormLabel>Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
+                  <div className="space-y-1">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </div>
                 </FormItem>
               )}
             />

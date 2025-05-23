@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -9,103 +10,55 @@ import {
   ChartContainer,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import type { ChartDataPoint } from "@/lib/types"
-import { PieChart as PieChartIcon } from "lucide-react"
 
-
+// Updated data to match the target image's legend
 const initialChartData: ChartDataPoint[] = [
-  { name: "Food & Dining", value: 400, fill: "hsl(var(--chart-1))" },
-  { name: "Transportation", value: 300, fill: "hsl(var(--chart-2))" },
-  { name: "Housing", value: 300, fill: "hsl(var(--chart-3))" },
-  { name: "Utilities", value: 200, fill: "hsl(var(--chart-4))" },
-  { name: "Entertainment", value: 278, fill: "hsl(var(--chart-5))" },
+  { name: "Chrome", value: 245, fill: "hsl(var(--chart-1))" }, // Teal/Greenish
+  { name: "Safari", value: 175, fill: "hsl(var(--chart-2))" }, // Orangey-Red
+  { name: "Firefox", value: 140, fill: "hsl(var(--chart-3))" }, // Dark Teal/Blue-Grey
+  { name: "Edge", value: 105, fill: "hsl(var(--chart-4))" }, // Yellow/Gold
+  { name: "Other", value: 35, fill: "hsl(var(--chart-5))" }, // Light Orange/Peach
 ]
 
+// Updated chartConfig to match the new data names
 const chartConfig = {
-  expenses: {
-    label: "Expenses",
+  usage: { // A generic key, as the chart doesn't specify "expenses" anymore
+    label: "Usage", // Label for tooltip, if needed
   },
-  food: {
-    label: "Food & Dining",
+  Chrome: {
+    label: "Chrome",
     color: "hsl(var(--chart-1))",
   },
-  transportation: {
-    label: "Transportation",
+  Safari: {
+    label: "Safari",
     color: "hsl(var(--chart-2))",
   },
-  housing: {
-    label: "Housing",
+  Firefox: {
+    label: "Firefox",
     color: "hsl(var(--chart-3))",
   },
-  utilities: {
-    label: "Utilities",
+  Edge: {
+    label: "Edge",
     color: "hsl(var(--chart-4))",
   },
-  entertainment: {
-    label: "Entertainment",
+  Other: {
+    label: "Other",
     color: "hsl(var(--chart-5))",
   },
 } satisfies ChartConfig
 
 export function ExpenseDistributionChart() {
-  const [timePeriod, setTimePeriod] = React.useState("current_month")
-  const [chartData, setChartData] = React.useState(initialChartData);
-
-  // Mock data filtering based on time period
-  React.useEffect(() => {
-    // In a real app, you would fetch and filter data based on timePeriod
-    if (timePeriod === "last_3_months") {
-      setChartData([
-        { name: "Food & Dining", value: 1200, fill: "hsl(var(--chart-1))" },
-        { name: "Transportation", value: 900, fill: "hsl(var(--chart-2))" },
-        { name: "Housing", value: 900, fill: "hsl(var(--chart-3))" },
-        { name: "Utilities", value: 600, fill: "hsl(var(--chart-4))" },
-        { name: "Entertainment", value: 834, fill: "hsl(var(--chart-5))" },
-      ]);
-    } else if (timePeriod === "year_to_date") {
-       setChartData([
-        { name: "Food & Dining", value: 4800, fill: "hsl(var(--chart-1))" },
-        { name: "Transportation", value: 3600, fill: "hsl(var(--chart-2))" },
-        { name: "Housing", value: 3600, fill: "hsl(var(--chart-3))" },
-        { name: "Utilities", value: 2400, fill: "hsl(var(--chart-4))" },
-        { name: "Entertainment", value: 3336, fill: "hsl(var(--chart-5))" },
-      ]);
-    } else { // current_month
-      setChartData(initialChartData);
-    }
-  }, [timePeriod]);
-
-  const totalExpenses = React.useMemo(() => {
-    return chartData.reduce((acc, curr) => acc + curr.value, 0)
-  }, [chartData])
+  // Removed timePeriod state and useEffect, as the chart is now static as per the image
 
   return (
     <Card className="flex flex-col shadow-lg">
       <CardHeader className="items-center pb-0">
-        <CardTitle className="text-xl font-semibold flex items-center">
-            <PieChartIcon className="mr-2 h-6 w-6 text-primary" />
-            Expense Distribution
+        <CardTitle className="text-xl font-semibold">
+            Pie Chart - Legend
         </CardTitle>
-        <CardDescription>By category for the selected period.</CardDescription>
-        <div className="w-full max-w-[200px] pt-2">
-          <Select value={timePeriod} onValueChange={setTimePeriod}>
-            <SelectTrigger aria-label="Select time period">
-              <SelectValue placeholder="Select period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="current_month">Current Month</SelectItem>
-              <SelectItem value="last_3_months">Last 3 Months</SelectItem>
-              <SelectItem value="year_to_date">Year-to-Date</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <CardDescription>January - June 2024</CardDescription>
+        {/* Removed Select component for time period */}
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         <ChartContainer
@@ -119,40 +72,30 @@ export function ExpenseDistributionChart() {
                 content={<ChartTooltipContent hideLabel nameKey="name" />}
               />
               <Pie
-                data={chartData}
+                data={initialChartData}
                 dataKey="value"
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                outerRadius={100}
-                innerRadius={50}
-                strokeWidth={2}
-                labelLine={false}
-                label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }) => {
-                  const RADIAN = Math.PI / 180;
-                  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                  const x = cx + (radius + 15) * Math.cos(-midAngle * RADIAN);
-                  const y = cy + (radius + 15) * Math.sin(-midAngle * RADIAN);
-                  if (percent * 100 < 5) return null; // Hide label if slice is too small
-                  return (
-                    <text x={x} y={y} fill="hsl(var(--foreground))" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-xs">
-                      {`${name} (${(percent * 100).toFixed(0)}%)`}
-                    </text>
-                  );
-                }}
+                outerRadius={110} // Slightly increased outerRadius for a common pie chart look
+                innerRadius={0} // No inner radius for a standard pie chart, not a donut
+                strokeWidth={1} // Reduced stroke width
+                // Removed custom label function to hide labels on slices
               >
-                {chartData.map((entry) => (
-                  <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                {initialChartData.map((entry) => (
+                  <Cell key={`cell-${entry.name}`} fill={entry.fill} stroke={entry.fill} />
                 ))}
               </Pie>
-               <Legend wrapperStyle={{fontSize: "0.8rem"}} />
+               <Legend 
+                 wrapperStyle={{fontSize: "0.8rem", paddingTop: "20px"}} // Added padding to move legend down
+                 align="center" 
+                 layout="horizontal"
+               />
             </PieChart>
           </ResponsiveContainer>
         </ChartContainer>
       </CardContent>
-      <div className="p-4 text-center text-sm text-muted-foreground">
-        Total Expenses: PHP {totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-      </div>
+      {/* Removed total expenses display */}
     </Card>
   )
 }

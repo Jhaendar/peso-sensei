@@ -1,12 +1,15 @@
 import type { Metadata } from 'next';
-import { GeistSans } from 'geist/font/sans';
+import { Inter } from 'next/font/google'; // Import Inter
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/components/providers/auth-provider';
 import { FirebaseProvider } from '@/components/providers/firebase-provider';
 
-// The GeistSans object from 'geist/font/sans' is used directly.
-// No need to call it as a function.
+// Configure Inter font
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter', // Define a CSS variable for Inter
+});
 
 export const metadata: Metadata = {
   title: 'Peso Sensei',
@@ -20,7 +23,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${GeistSans.variable} font-sans antialiased`}>
+      {/* Apply the Inter font variable to the body */}
+      <body className={`${inter.variable} font-sans antialiased`}>
         <FirebaseProvider>
           <AuthProvider>
             {children}

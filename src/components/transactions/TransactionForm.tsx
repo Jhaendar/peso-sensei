@@ -27,7 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Landmark, ShoppingCart, Coins } from "lucide-react";
+import { CalendarIcon, Landmark, ShoppingCart, Coins, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import React from "react";
@@ -45,7 +45,7 @@ const formSchema = z.object({
   description: z.string().optional(),
 });
 
-const fetchUserCategories = async (userId: string, type: 'income' | 'expense'): Promise<Category[]> => {
+const fetchUserCategories = async (userId: string | undefined, type: 'income' | 'expense'): Promise<Category[]> => {
   if (!userId || !db) return [];
   const categoriesCol = collection(db, "categories");
   const q = query(categoriesCol, where("userId", "==", userId), where("type", "==", type));
@@ -72,7 +72,7 @@ function TransactionFormContent() {
 
   const { data: availableCategories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>({
     queryKey: ['categories', user?.uid, selectedType],
-    queryFn: () => fetchUserCategories(user!.uid, selectedType),
+    queryFn: () => fetchUserCategories(user?.uid, selectedType),
     enabled: !!user && !!db,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -301,7 +301,12 @@ function TransactionFormContent() {
               )}
             />
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={form.formState.isSubmitting || !user || !db}>
-               <Coins className="mr-2 h-5 w-5" /> {form.formState.isSubmitting ? "Adding..." : "Add Transaction"}
+              {form.formState.isSubmitting ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              ) : (
+                <Coins className="mr-2 h-5 w-5" />
+              )}
+              {form.formState.isSubmitting ? "Adding..." : "Add Transaction"}
             </Button>
           </form>
         </Form>

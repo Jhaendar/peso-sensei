@@ -46,12 +46,12 @@ const formSchema = z.object({
 
 // Mock categories for now - these should eventually come from Firestore
 const mockCategories: Category[] = [
-  { id: 'cat_income_salary', name: 'Salary', type: 'income', createdAt: new Date(), userId: 'mockUser' },
-  { id: 'cat_income_freelance', name: 'Freelance', type: 'income', createdAt: new Date(), userId: 'mockUser' },
-  { id: 'cat_expense_food', name: 'Food & Dining', type: 'expense', createdAt: new Date(), userId: 'mockUser' },
-  { id: 'cat_expense_transport', name: 'Transportation', type: 'expense', createdAt: new Date(), userId: 'mockUser' },
-  { id: 'cat_expense_housing', name: 'Housing', type: 'expense', createdAt: new Date(), userId: 'mockUser' },
-  { id: 'cat_expense_utilities', name: 'Utilities', type: 'expense', createdAt: new Date(), userId: 'mockUser' },
+  { id: 'cat_income_salary', name: 'Salary', type: 'income', createdAt: Timestamp.now(), userId: 'mockUser' },
+  { id: 'cat_income_freelance', name: 'Freelance', type: 'income', createdAt: Timestamp.now(), userId: 'mockUser' },
+  { id: 'cat_expense_food', name: 'Food & Dining', type: 'expense', createdAt: Timestamp.now(), userId: 'mockUser' },
+  { id: 'cat_expense_transport', name: 'Transportation', type: 'expense', createdAt: Timestamp.now(), userId: 'mockUser' },
+  { id: 'cat_expense_housing', name: 'Housing', type: 'expense', createdAt: Timestamp.now(), userId: 'mockUser' },
+  { id: 'cat_expense_utilities', name: 'Utilities', type: 'expense', createdAt: Timestamp.now(), userId: 'mockUser' },
 ];
 
 
@@ -106,6 +106,7 @@ export function TransactionForm() {
         description: `Your ${values.type} "${values.title}" has been successfully recorded.`,
       });
       form.reset(); 
+      // Reset available categories based on the (now reset) form's type value
       setAvailableCategories(mockCategories.filter(cat => cat.type === form.getValues("type")));
     } catch (error) {
       console.error("Error adding transaction: ", error);
@@ -132,7 +133,7 @@ export function TransactionForm() {
       </CardHeader>
       <CardContent className="px-4 pt-2 pb-4 sm:px-6 sm:pt-2">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2 sm:space-y-3"> {/* Reduced mobile spacing */}
             <FormField
               control={form.control}
               name="type"
@@ -221,7 +222,7 @@ export function TransactionForm() {
               control={form.control}
               name="amount"
               render={({ field }) => (
-                <FormItem className="grid grid-cols-[8rem_1fr] items-center gap-x-3">
+                <FormItem> {/* Label above input */}
                   <FormLabel>Amount (PHP)</FormLabel>
                   <div className="space-y-1">
                     <FormControl>
@@ -237,7 +238,7 @@ export function TransactionForm() {
               control={form.control}
               name="categoryId"
               render={({ field }) => (
-                <FormItem className="grid grid-cols-[8rem_1fr] items-center gap-x-3">
+                <FormItem> {/* Label above input */}
                   <FormLabel>Category</FormLabel>
                   <div className="space-y-1">
                     <Select onValueChange={field.onChange} value={field.value} disabled={availableCategories.length === 0}>
@@ -282,5 +283,3 @@ export function TransactionForm() {
     </Card>
   );
 }
-
-    

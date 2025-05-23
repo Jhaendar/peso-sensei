@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -8,7 +9,7 @@ import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'; // Added SheetHeader and SheetTitle
 import { Menu, LogOut, LayoutDashboard, ListChecks } from 'lucide-react';
 
 export function Navbar() {
@@ -71,7 +72,10 @@ export function Navbar() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right">
-                <div className="flex flex-col gap-4 p-4">
+                <SheetHeader>
+                  <SheetTitle className="sr-only">Main Menu</SheetTitle>
+                </SheetHeader>
+                <div className="flex flex-col gap-4 p-4 pt-0"> {/* Adjusted padding-top as title is in header */}
                   <Link href="/" className="flex items-center gap-2 mb-4">
                     <Logo />
                     <span className="font-semibold text-lg">Peso Sensei</span>

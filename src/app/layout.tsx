@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import { GeistSans } from 'next/font/google'; // Corrected import
+import { GeistSans } from 'geist/font/sans'; // Corrected import from geist/font/sans
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/components/providers/auth-provider';
 import { FirebaseProvider } from '@/components/providers/firebase-provider';
 
-const geistSans = GeistSans({ // Corrected instantiation
+const geistSans = GeistSans({ 
   variable: '--font-geist-sans',
   subsets: ['latin'],
 });

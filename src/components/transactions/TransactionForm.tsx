@@ -34,7 +34,7 @@ import React from "react";
 import { addDoc, collection, Timestamp, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/components/providers/auth-provider";
-import { useQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const formSchema = z.object({
   type: z.enum(["income", "expense"], { required_error: "Please select a transaction type." }),
@@ -50,12 +50,18 @@ const fetchUserCategories = async (userId: string | undefined, type: 'income' | 
   const categoriesCol = collection(db, "categories");
   const q = query(categoriesCol, where("userId", "==", userId), where("type", "==", type));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: (doc.data().createdAt as Timestamp).toDate() } as Category));
+  return snapshot.docs.map(doc => ({ 
+    id: doc.id, 
+    ...doc.data(), 
+    createdAt: (doc.data().createdAt as Timestamp)?.toDate ? (doc.data().createdAt as Timestamp).toDate() : new Date() // Fallback for potentially missing or malformed createdAt
+  } as Category));
 };
 
 function TransactionFormContent() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClientHook = useQueryClient(); // Use hook from provider context
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -125,8 +131,12 @@ function TransactionFormContent() {
         date: new Date(),
         description: "",
       });
-      // Consider refetching dashboard data if this form is on the dashboard page
-      // queryClient.invalidateQueries(['monthlyTransactions', user?.uid, format(new Date(), "yyyy-MM")]);
+      
+      // Invalidate queries to refresh data on dashboard and transactions page
+      const currentMonthKey = format(new Date(), "yyyy-MM");
+      queryClientHook.invalidateQueries({ queryKey: ['monthlyTransactions', user.uid, currentMonthKey] });
+      queryClientHook.invalidateQueries({ queryKey: ['allUserTransactions', user.uid] });
+
     } catch (error) {
       console.error("Error adding transaction: ", error);
       toast({
@@ -315,12 +325,7 @@ function TransactionFormContent() {
   );
 }
 
-const queryClient = new QueryClient();
-
 export function TransactionForm() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TransactionFormContent />
-    </QueryClientProvider>
-  );
+  // QueryClientProvider is removed from here and will be inherited from DashboardPage
+  return <TransactionFormContent />;
 }

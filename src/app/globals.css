@@ -9,62 +9,62 @@ body {
 
 @layer base {
   :root {
-    --background: 0 0% 100%; /* Neutral background */
-    --foreground: 224 71.4% 4.1%; /* Neutral foreground */
+    --background: 0 0% 100%; /* White background */
+    --foreground: 270 10% 15%; /* Dark grayish purple foreground */
     --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
+    --card-foreground: 270 10% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 4.1%;
-    --primary: 220 13.0% 45.9%; /* Neutral Primary (mid-dark gray) */
-    --primary-foreground: 210 20% 98%; /* Light text for primary */
-    --secondary: 220 14.3% 95.9%; /* Light neutral secondary */
-    --secondary-foreground: 220.9 39.3% 11.0%; /* Dark text for secondary */
-    --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 8.9% 46.1%; /* Muted text */
-    --accent: 220 14.3% 95.9%; /* Light neutral accent */
-    --accent-foreground: 220.9 39.3% 11.0%; /* Dark text for accent */
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 220 13.0% 45.9%; /* Ring, often same as primary */
+    --popover-foreground: 270 10% 15%;
+    --primary: 270 60% 55%; /* Main purple */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
+    --secondary: 270 20% 96%; /* Very light purple/gray */
+    --secondary-foreground: 270 10% 25%; /* Darker purple/gray text on secondary */
+    --muted: 270 20% 96%;
+    --muted-foreground: 270 8% 45%; /* Muted purple/gray text */
+    --accent: 270 60% 90%; /* Light purple accent */
+    --accent-foreground: 270 60% 20%; /* Darker purple text on accent */
+    --destructive: 0 84.2% 60.2%; /* Standard red */
+    --destructive-foreground: 0 0% 100%; /* White text on destructive */
+    --border: 270 10% 88%; /* Light purple/gray border */
+    --input: 270 10% 88%; /* Light purple/gray input background */
+    --ring: 270 60% 55%; /* Main purple for ring */
     
-    /* Neutral Chart Colors */
-    --chart-1: 220 13% 50%;
-    --chart-2: 220 13% 60%;
-    --chart-3: 220 13% 70%;
-    --chart-4: 220 13% 80%;
-    --chart-5: 220 13% 40%;
+    /* Purple-themed Chart Colors */
+    --chart-1: 270 60% 50%; /* Base purple */
+    --chart-2: 270 50% 65%; /* Lighter purple */
+    --chart-3: 290 60% 60%; /* More magenta purple */
+    --chart-4: 250 50% 55%; /* More indigo purple */
+    --chart-5: 270 40% 40%; /* Darker purple */
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 224 71.4% 4.1%; /* Dark neutral background */
-    --foreground: 210 20% 98%; /* Light neutral foreground */
-    --card: 224 71.4% 4.1%;
-    --card-foreground: 210 20% 98%;
-    --popover: 224 71.4% 4.1%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 210 20% 98%; /* Light primary for dark mode */
-    --primary-foreground: 220.9 39.3% 11.0%; /* Dark text for primary */
-    --secondary: 215 27.9% 16.9%; /* Darker neutral secondary */
-    --secondary-foreground: 210 20% 98%;
-    --muted: 215 27.9% 16.9%;
-    --muted-foreground: 217.9 10.6% 64.9%;
-    --accent: 215 27.9% 16.9%; /* Darker neutral accent */
-    --accent-foreground: 210 20% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 215 27.9% 16.9%;
-    --input: 215 27.9% 16.9%;
-    --ring: 210 20% 98%; /* Light ring for dark mode */
+    --background: 270 10% 10%; /* Very dark purple background */
+    --foreground: 270 10% 95%; /* Very light purple/gray foreground */
+    --card: 270 10% 10%;
+    --card-foreground: 270 10% 95%;
+    --popover: 270 10% 10%;
+    --popover-foreground: 270 10% 95%;
+    --primary: 270 60% 65%; /* Slightly lighter purple for dark mode primary */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
+    --secondary: 270 10% 20%; /* Dark purple/gray secondary */
+    --secondary-foreground: 270 10% 90%; /* Light purple/gray text on secondary */
+    --muted: 270 10% 20%;
+    --muted-foreground: 270 8% 60%; /* Muted light purple/gray text */
+    --accent: 270 20% 25%; /* Darker purple accent for dark mode */
+    --accent-foreground: 270 20% 90%; /* Light purple text on accent */
+    --destructive: 0 70% 50%; /* Slightly desaturated red for dark mode */
+    --destructive-foreground: 0 0% 100%;
+    --border: 270 10% 25%; /* Dark purple/gray border */
+    --input: 270 10% 25%; /* Dark purple/gray input background */
+    --ring: 270 60% 65%; /* Lighter purple for ring in dark mode */
 
-    /* Neutral Chart Colors for Dark Theme */
-    --chart-1: 220 13% 60%;
-    --chart-2: 220 13% 70%;
-    --chart-3: 220 13% 80%;
-    --chart-4: 220 13% 90%;
-    --chart-5: 220 13% 50%;
+    /* Purple-themed Chart Colors for Dark Theme */
+    --chart-1: 270 60% 60%;
+    --chart-2: 270 50% 75%;
+    --chart-3: 290 60% 70%;
+    --chart-4: 250 50% 65%;
+    --chart-5: 270 40% 50%;
   }
 }
 

@@ -19,12 +19,12 @@ const fetchUserCategories = async (userId: string | undefined): Promise<Category
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => {
     const data = doc.data();
-    return { 
-      id: doc.id, 
-      ...data, 
-      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt) 
+    return {
+      id: doc.id,
+      ...data,
+      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt)
     } as Category;
-  });
+  }).sort((a, b) => a.name.localeCompare(b.name));
 };
 
 const fetchAllUserTransactions = async (userId: string | undefined): Promise<Transaction[]> => {
@@ -38,7 +38,7 @@ const fetchAllUserTransactions = async (userId: string | undefined): Promise<Tra
       id: doc.id,
       ...data,
       createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
-      date: data.date, 
+      date: data.date,
     } as Transaction;
   });
 };
@@ -110,14 +110,14 @@ function TransactionsPageContent() {
       categoryName: categoriesMap.get(t.categoryId) || "Uncategorized",
     })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions, categories]);
-  
+
   const isLoading = isLoadingCategories || isLoadingTransactions;
   const queryError = categoriesError || transactionsError;
 
   if (!user && !isLoading) {
     return <p className="text-center text-muted-foreground p-4">Please log in to view transactions.</p>;
   }
-  
+
   return (
     <div className="space-y-8">
       <div>
@@ -130,27 +130,27 @@ function TransactionsPageContent() {
       <section aria-labelledby="overall-summary-title" className="mb-8">
         <h2 id="overall-summary-title" className="sr-only">Overall Financial Summary</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard 
-            title="Total Income" 
-            value={totalIncome} 
-            icon={<TrendingUp className="h-5 w-5 text-green-500" />} 
+          <StatCard
+            title="Total Income"
+            value={totalIncome}
+            icon={<TrendingUp className="h-5 w-5 text-green-500" />}
             isLoading={isLoading}
           />
-          <StatCard 
-            title="Total Expenses" 
-            value={totalExpenses} 
-            icon={<TrendingDown className="h-5 w-5 text-red-500" />} 
+          <StatCard
+            title="Total Expenses"
+            value={totalExpenses}
+            icon={<TrendingDown className="h-5 w-5 text-red-500" />}
             isLoading={isLoading}
           />
-          <StatCard 
-            title="Overall Balance" 
-            value={overallBalance} 
-            icon={<Wallet className="h-5 w-5 text-primary" />} 
+          <StatCard
+            title="Overall Balance"
+            value={overallBalance}
+            icon={<Wallet className="h-5 w-5 text-primary" />}
             isLoading={isLoading}
           />
         </div>
       </section>
-      
+
       {queryError && (
          <Card>
             <CardContent className="p-4">
@@ -170,9 +170,10 @@ function TransactionsPageContent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <TransactionTable 
-            data={processedTableData} 
-            isLoading={isLoading} 
+          <TransactionTable
+            data={processedTableData}
+            categories={categories || []}
+            isLoading={isLoading}
             error={queryError}
           />
         </CardContent>

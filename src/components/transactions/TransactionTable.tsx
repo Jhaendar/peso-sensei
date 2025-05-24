@@ -14,7 +14,7 @@ import {
   type ColumnFiltersState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import type { TransactionRow } from "./TransactionTableColumns";
+import type { TransactionRow, Category } from "@/lib/types";
 import { columns } from "./TransactionTableColumns";
 
 import {
@@ -28,6 +28,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -40,18 +47,19 @@ import { Card, CardContent } from "../ui/card";
 
 interface TransactionTableContentProps {
   data: TransactionRow[];
+  categories: Category[];
   isLoading?: boolean;
   error?: Error | null;
 }
 
-function TransactionTableContent({ data, isLoading, error }: TransactionTableContentProps) {
+function TransactionTableContent({ data, categories, isLoading, error }: TransactionTableContentProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  
+
   const table = useReactTable({
-    data: data || [], 
+    data: data || [],
     columns,
     state: {
       sorting,
@@ -83,7 +91,7 @@ function TransactionTableContent({ data, isLoading, error }: TransactionTableCon
     return (
       <div className="space-y-4">
         <div className="flex items-center py-4">
-          <Skeleton className="h-10 w-full max-w-sm" /> 
+          <Skeleton className="h-10 w-full max-w-sm" />
           <Skeleton className="ml-auto h-10 w-[120px]" />
         </div>
         <div className="rounded-md border">
@@ -113,26 +121,36 @@ function TransactionTableContent({ data, isLoading, error }: TransactionTableCon
       </div>
     );
   }
-  
+
   return (
     <div className="w-full">
-      <div className="flex items-center py-4 gap-2">
+      <div className="flex flex-col sm:flex-row items-center py-4 gap-2">
         <Input
           placeholder="Filter by title..."
           value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("title")?.setFilterValue(event.target.value)
           }
-          className="max-w-sm"
+          className="w-full sm:max-w-xs"
         />
-         <Input
-          placeholder="Filter by category..."
+         <Select
           value={(table.getColumn("categoryName")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("categoryName")?.setFilterValue(event.target.value)
+          onValueChange={(value) =>
+            table.getColumn("categoryName")?.setFilterValue(value === "all" ? "" : value)
           }
-          className="max-w-sm"
-        />
+        >
+          <SelectTrigger className="w-full sm:max-w-xs">
+            <SelectValue placeholder="Filter by category..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {categories.map((category) => (
+              <SelectItem key={category.id} value={category.name}>
+                {category.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
@@ -236,8 +254,8 @@ function TransactionTableContent({ data, isLoading, error }: TransactionTableCon
   );
 }
 
-export function TransactionTable({ data, isLoading, error }: TransactionTableContentProps) {
+export function TransactionTable({ data, categories, isLoading, error }: TransactionTableContentProps) {
   return (
-      <TransactionTableContent data={data} isLoading={isLoading} error={error} />
+      <TransactionTableContent data={data} categories={categories} isLoading={isLoading} error={error} />
   );
 }

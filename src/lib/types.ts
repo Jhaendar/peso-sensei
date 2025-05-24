@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export interface Transaction {
@@ -6,18 +7,23 @@ export interface Transaction {
   title: string;
   amount: number;
   categoryId: string;
-  categoryName?: string; // Optional: Consider adding this during transaction creation for easier display
   date: string; // ISO date string e.g. "2024-07-28"
   description?: string;
-  createdAt: Timestamp; // Firestore Timestamp
+  createdAt: Timestamp | Date; // Firestore Timestamp or JS Date
   userId: string;
 }
+
+export interface TransactionRow extends Omit<Transaction, 'createdAt'> {
+  categoryName?: string;
+  createdAt: Date; // Ensure this is always a Date object for table consistency
+}
+
 
 export interface Category {
   id?: string; // Firestore document ID
   name: string;
   type: 'income' | 'expense';
-  createdAt: Timestamp; // Firestore Timestamp
+  createdAt: Timestamp | Date; // Firestore Timestamp or JS Date
   userId: string;
 }
 

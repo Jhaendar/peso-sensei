@@ -14,12 +14,10 @@ import {
   type ColumnFiltersState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { useQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { useAuth } from "@/components/providers/auth-provider";
-import type { Transaction, Category } from "@/lib/types";
-import { columns, type TransactionRow } from "./TransactionTableColumns";
+// Removed QueryClient, QueryClientProvider, useQuery, db, collection, query, where, getDocs, Timestamp, useAuth
+// type Category, Transaction are now imported by the page
+import type { TransactionRow } from "./TransactionTableColumns";
+import { columns } from "./TransactionTableColumns";
 
 import {
   Table,
@@ -39,71 +37,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown } from "lucide-react";
-
-const fetchUserCategories = async (userId: string): Promise<Category[]> => {
-  if (!userId) return [];
-  if (!db) {
-    console.error("Firestore DB instance is not available for fetchUserCategories.");
-    // Potentially throw an error or return a specific state if db is critical here
-    return [];
-  }
-  const categoriesCol = collection(db, "categories");
-  const q = query(categoriesCol, where("userId", "==", userId));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
-};
-
-const fetchAllUserTransactions = async (userId: string): Promise<Transaction[]> => {
-  if (!userId) return [];
-  if (!db) {
-    console.error("Firestore DB instance is not available for fetchAllUserTransactions.");
-    return [];
-  }
-  const transactionsCol = collection(db, "transactions");
-  const q = query(transactionsCol, where("userId", "==", userId));
-  const snapshot = await getDocs(q);
-  // Ensure createdAt is converted if it's a Firestore Timestamp
-  return snapshot.docs.map(doc => {
-    const data = doc.data();
-    return {
-      id: doc.id,
-      ...data,
-      createdAt: (data.createdAt as Timestamp)?.toDate ? (data.createdAt as Timestamp).toDate() : new Date(data.createdAt),
-    } as Transaction;
-  });
-};
+import { Card, CardContent } from "../ui/card";
 
 
-function TransactionTableContent() {
-  const { user } = useAuth();
+interface TransactionTableContentProps {
+  data: TransactionRow[];
+  isLoading?: boolean;
+  error?: Error | null;
+}
+
+function TransactionTableContent({ data, isLoading, error }: TransactionTableContentProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-
-  const { data: categories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>({
-    queryKey: ['allUserCategories', user?.uid],
-    queryFn: () => fetchUserCategories(user!.uid),
-    enabled: !!user && !!db, // Also check if db is available
-  });
-
-  const { data: transactions, isLoading: isLoadingTransactions, error: transactionsError } = useQuery<Transaction[], Error>({
-    queryKey: ['allUserTransactions', user?.uid],
-    queryFn: () => fetchAllUserTransactions(user!.uid),
-    enabled: !!user && !!db, // Also check if db is available
-  });
-
-  const processedData = React.useMemo((): TransactionRow[] => {
-    if (!transactions || !categories) return [];
-    const categoriesMap = new Map(categories.map(cat => [cat.id, cat.name]));
-    return transactions.map(t => ({
-      ...t,
-      categoryName: categoriesMap.get(t.categoryId) || "Uncategorized",
-    })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Default sort by date descending
-  }, [transactions, categories]);
   
   const table = useReactTable({
-    data: processedData,
+    data: data || [], // Use data prop, ensure it's an array
     columns,
     state: {
       sorting,
@@ -121,28 +71,17 @@ function TransactionTableContent() {
     getPaginationRowModel: getPaginationRowModel(),
   });
 
-  if (!db && user) { // Check if db is not available after initial app load and user is present
+  if (error) {
     return (
-      <div className="p-4 border rounded-md bg-destructive/10 text-destructive">
-        <p className="font-semibold">Firestore Connection Error</p>
-        <p>The application could not connect to the database. Please ensure Firebase is configured correctly and check the console for more details.</p>
-      </div>
-    )
-  }
-  
-  if (categoriesError || transactionsError) {
-    return (
-        <div className="p-4 border rounded-md bg-destructive/10 text-destructive">
-          <p className="font-semibold">Error loading transaction data:</p>
-          <pre className="text-xs whitespace-pre-wrap">
-            {categoriesError?.message || transactionsError?.message}
-            {categoriesError?.stack || transactionsError?.stack}
-          </pre>
-        </div>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-destructive">Error loading transaction table: {error.message}</p>
+          </CardContent>
+        </Card>
     );
   }
 
-  if (isLoadingCategories || (user && isLoadingTransactions && !transactions)) {
+  if (isLoading) {
     return (
       <div className="space-y-4">
         <div className="flex items-center py-4">
@@ -152,15 +91,18 @@ function TransactionTableContent() {
         <div className="rounded-md border">
           <Table>
             <TableHeader>
-              {Array(6).fill(null).map((_, idx) => (
-                <TableHead key={idx}><Skeleton className="h-5 w-20" /></TableHead>
-              ))}
+              {/* Render skeleton headers based on actual column definitions */}
+              <TableRow>
+                {columns.map((column, idx) => (
+                   <TableHead key={column.id || `skeleton-head-${idx}`}><Skeleton className="h-5 w-20" /></TableHead>
+                ))}
+              </TableRow>
             </TableHeader>
             <TableBody>
               {Array(5).fill(null).map((_, rowIndex) => (
                 <TableRow key={rowIndex}>
-                  {Array(6).fill(null).map((_, cellIndex) => (
-                    <TableCell key={cellIndex}><Skeleton className="h-5 w-full" /></TableCell>
+                  {columns.map((column, cellIndex) => (
+                    <TableCell key={column.id || `skeleton-cell-${rowIndex}-${cellIndex}`}><Skeleton className="h-5 w-full" /></TableCell>
                   ))}
                 </TableRow>
               ))}
@@ -214,7 +156,8 @@ function TransactionTableContent() {
                       column.toggleVisibility(!!value)
                     }
                   >
-                    {column.id}
+                    {/* Use a more friendly name for display if available */}
+                    {typeof column.columnDef.header === 'string' ? column.columnDef.header : column.id}
                   </DropdownMenuCheckboxItem>
                 );
               })}
@@ -297,12 +240,9 @@ function TransactionTableContent() {
   );
 }
 
-const queryClient = new QueryClient();
-
-export function TransactionTable() {
+// QueryClientProvider is removed, as the page will provide it.
+export function TransactionTable({ data, isLoading, error }: TransactionTableContentProps) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TransactionTableContent />
-    </QueryClientProvider>
+      <TransactionTableContent data={data} isLoading={isLoading} error={error} />
   );
 }

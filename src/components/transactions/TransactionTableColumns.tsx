@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { format, startOfDay } from "date-fns";
+import { format, parseISO, startOfDay, addDays } from "date-fns";
 import type { DateRange } from "react-day-picker";
 
 const SortIndicator = ({ column }: { column: any }) => {
@@ -70,12 +70,11 @@ export const columns: ColumnDef<TransactionRow>[] = [
     cell: ({ row }) => {
       const date = row.getValue("date") as string;
       try {
-        // Ensure date is treated as UTC to avoid off-by-one day errors due to timezone conversion
-        const [year, month, day] = date.split('-').map(Number);
-        const utcDate = new Date(Date.UTC(year, month - 1, day));
-        return <div className="text-left">{format(utcDate, "MMM dd, yyyy")}</div>;
+        // Assuming date is "yyyy-MM-dd" string
+        const parsedDate = parseISO(date + "T00:00:00"); // Treat as local date
+        return <div className="text-left">{format(parsedDate, "MMM dd, yyyy")}</div>;
       } catch (e) {
-        return <div className="text-left">{date}</div>;
+        return <div className="text-left">{date}</div>; // Fallback if parsing fails
       }
     },
     filterFn: (row, columnId, filterValue: DateRange | undefined) => {
@@ -95,7 +94,6 @@ export const columns: ColumnDef<TransactionRow>[] = [
         passesFrom = rowDate >= startOfDay(from);
       }
       if (to) {
-        // For 'to' date, we should include the entire day, so compare with end of day or start of next day
         passesTo = rowDate < addDays(startOfDay(to), 1);
       }
       return passesFrom && passesTo;
@@ -117,31 +115,6 @@ export const columns: ColumnDef<TransactionRow>[] = [
     cell: ({ row }) => <div className="text-left">{row.getValue("title")}</div>,
   },
   {
-    accessorKey: "type",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Type
-          <SortIndicator column={column} />
-        </Button>
-      );
-    },
-    cell: ({ row }) => {
-      const type = row.getValue("type") as string;
-      return (
-        <Badge variant={type === "income" ? "default" : "destructive"} className={type === "income" ? "bg-green-500/20 text-green-700 hover:bg-green-500/30" : "bg-red-500/20 text-red-700 hover:bg-red-500/30"}>
-          {type.charAt(0).toUpperCase() + type.slice(1)}
-        </Badge>
-      );
-    },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
-    },
-  },
-  {
     accessorKey: "categoryName",
     header: ({ column }) => {
       return (
@@ -157,10 +130,42 @@ export const columns: ColumnDef<TransactionRow>[] = [
     cell: ({ row }) => <div className="text-left">{row.getValue("categoryName") || "N/A"}</div>,
     filterFn: (row, columnId, filterValue: string[] | undefined) => {
       if (!filterValue || filterValue.length === 0) {
-        return true; // No filter applied or empty filter array
+        return true; 
       }
       const rowValue = row.getValue(columnId) as string;
       return filterValue.includes(rowValue);
+    },
+  },
+  {
+    accessorKey: "type",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Type
+          <SortIndicator column={column} />
+        </Button>
+      );
+    },
+    cell: ({ row }) => {
+      const type = row.getValue("type") as string;
+      if (type === "income") {
+        return (
+          <Badge className="capitalize bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-700/30 dark:text-green-300 dark:hover:bg-green-700/40">
+            Income
+          </Badge>
+        );
+      }
+      return (
+        <Badge variant="destructive" className="capitalize">
+          Expense
+        </Badge>
+      );
+    },
+    filterFn: (row, id, value) => {
+      return value.includes(row.getValue(id));
     },
   },
   {

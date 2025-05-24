@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from '@/components/providers/auth-provider';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, updateDoc, deleteDoc, query, where, getDocs, doc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, query, where, getDocs, doc, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { useQuery, useMutation, QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -69,7 +69,7 @@ function CategoryManagerContent() {
       return addDoc(collection(db, "categories"), {
         ...newCategoryData,
         userId: user.uid,
-        createdAt: Timestamp.now(),
+        createdAt: serverTimestamp(),
       });
     },
     onSuccess: () => {
@@ -104,6 +104,13 @@ function CategoryManagerContent() {
   const deleteCategoryMutation = useMutation({
     mutationFn: async (categoryId: string) => {
       if (!user || !db) throw new Error("User or DB not available");
+      // First, check if this category is being used in any transactions
+      const transactionsCol = collection(db, "transactions");
+      const q = query(transactionsCol, where("userId", "==", user.uid), where("categoryId", "==", categoryId));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        throw new Error("Cannot delete category. It is currently assigned to one or more transactions.");
+      }
       const categoryRef = doc(db, "categories", categoryId);
       return deleteDoc(categoryRef);
     },
@@ -251,7 +258,11 @@ function CategoryManagerContent() {
                 <li key={category.id} className="flex items-center justify-between p-3 bg-secondary/30 rounded-md shadow-sm">
                   <div>
                     <span className="font-medium">{category.name}</span>
-                    <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${category.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    <span className={`ml-2 text-xs px-2 py-0.5 rounded-full capitalize ${
+                      category.type === 'income' 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-700/30 dark:text-green-300' 
+                        : 'bg-red-100 text-red-800 dark:bg-red-700/30 dark:text-red-300'
+                    }`}>
                       {category.type}
                     </span>
                   </div>
@@ -308,3 +319,4 @@ export function CategoryManager() {
     </QueryClientProvider>
   );
 }
+

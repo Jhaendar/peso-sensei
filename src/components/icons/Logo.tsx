@@ -1,5 +1,5 @@
 
-import type React from 'react';
+import React from 'react';
 
 const Logo: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg

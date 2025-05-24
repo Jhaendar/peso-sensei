@@ -1,7 +1,7 @@
 
 "use client";
 
-import type React from 'react';
+import React from 'react';
 import { TransactionTable } from '@/components/transactions/TransactionTable';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ListFilter, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
@@ -17,11 +17,14 @@ const fetchUserCategories = async (userId: string | undefined): Promise<Category
   const categoriesCol = collection(db, "categories");
   const q = query(categoriesCol, where("userId", "==", userId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ 
-    id: doc.id, 
-    ...doc.data(), 
-    createdAt: (doc.data().createdAt as Timestamp)?.toDate ? (doc.data().createdAt as Timestamp).toDate() : new Date() 
-  } as Category));
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return { 
+      id: doc.id, 
+      ...data, 
+      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt) 
+    } as Category;
+  });
 };
 
 const fetchAllUserTransactions = async (userId: string | undefined): Promise<Transaction[]> => {
@@ -34,7 +37,7 @@ const fetchAllUserTransactions = async (userId: string | undefined): Promise<Tra
     return {
       id: doc.id,
       ...data,
-      createdAt: (data.createdAt as Timestamp)?.toDate ? (data.createdAt as Timestamp).toDate() : new Date(data.createdAt),
+      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
       date: data.date, 
     } as Transaction;
   });

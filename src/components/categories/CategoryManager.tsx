@@ -1,7 +1,7 @@
 
 "use client";
 
-import type React from 'react';
+import React from 'react';
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,11 +38,14 @@ const fetchUserCategories = async (userId: string | undefined): Promise<Category
   const categoriesCol = collection(db, "categories");
   const q = query(categoriesCol, where("userId", "==", userId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ 
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return { 
       id: doc.id, 
-      ...doc.data(), 
-      createdAt: (doc.data().createdAt as Timestamp).toDate() 
-    } as Category)).sort((a, b) => a.name.localeCompare(b.name));
+      ...data, 
+      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt) 
+    } as Category;
+  }).sort((a, b) => a.name.localeCompare(b.name));
 };
 
 function CategoryManagerContent() {

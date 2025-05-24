@@ -1,7 +1,7 @@
 
 "use client";
 
-import type React from 'react';
+import React from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -20,6 +20,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!auth) { // Add this check
+      console.error("Firebase auth instance is not available in AuthProvider. Firebase might not be initialized correctly.");
+      setLoading(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);

@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { CategoryManager } from '@/components/categories/CategoryManager';
 import type { Metadata } from 'next';
 

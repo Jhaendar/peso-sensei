@@ -1,7 +1,7 @@
 
 "use client"; 
 
-import type React from 'react';
+import React from 'react';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/shared/Navbar';
@@ -21,7 +21,7 @@ export default function MainLayout({
   //   }
   // }, [user, loading, router]);
 
-  if (loading) {
+  if (loading && !user) { // Show loading only if user is not yet available
     return (
       <div className="flex h-screen items-center justify-center">
         <p>Loading user session...</p>

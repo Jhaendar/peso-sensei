@@ -1,8 +1,8 @@
 
 "use client";
 
-import { app } from '@/lib/firebase'; 
-import type React from 'react';
+import { app } from '@/lib/firebase'; // app is used to ensure firebase initializes
+import React from 'react';
 
 export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>;

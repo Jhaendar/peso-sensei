@@ -28,7 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Landmark, ShoppingCart, Coins, Loader2, ScanLine } from "lucide-react";
+import { CalendarIcon, Landmark, ShoppingCart, Coins, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { addDoc, collection, serverTimestamp, query, where, getDocs, type Timestamp } from "firebase/firestore";
@@ -46,7 +46,7 @@ const formSchema = z.object({
 });
 
 const fetchUserCategories = async (userId: string | undefined, type: 'income' | 'expense'): Promise<Category[]> => {
-  if (!userId || !db) return [];
+  if (!userId || !db || !type) return [];
   const categoriesCol = collection(db, "categories");
   const q = query(categoriesCol, where("userId", "==", userId), where("type", "==", type));
   const snapshot = await getDocs(q);
@@ -81,8 +81,8 @@ function TransactionFormContent() {
 
   const { data: availableCategories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>({
     queryKey: ['categories', user?.uid, selectedType],
-    queryFn: () => fetchUserCategories(user?.uid, selectedType),
-    enabled: !!user && !!db,
+    queryFn: () => fetchUserCategories(user!.uid, selectedType),
+    enabled: !!user && !!db && !!selectedType,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -115,7 +115,7 @@ function TransactionFormContent() {
     try {
       const transactionData = {
         ...values,
-        date: format(values.date, "yyyy-MM-dd"), // Store date as yyyy-MM-dd string
+        date: format(values.date, "yyyy-MM-dd"), 
         userId: user.uid,
         createdAt: serverTimestamp(),
       };
@@ -150,7 +150,7 @@ function TransactionFormContent() {
 
   return (
     <Card className="w-full shadow-lg">
-      <CardHeader className="px-4 pt-3 pb-2 sm:px-6">
+      <CardHeader className="px-4 pt-3 pb-2 sm:px-6 sm:pt-4 sm:pb-3">
         <CardTitle className="text-base sm:text-lg font-semibold flex items-center">
           {selectedType === "income" ? <Landmark className="mr-2 h-5 w-5 text-green-500" /> : <ShoppingCart className="mr-2 h-5 w-5 text-red-500" />}
           Add New Transaction
@@ -159,7 +159,7 @@ function TransactionFormContent() {
           Record your income or expenses.
         </CardDescription>
       </CardHeader>
-      <CardContent className="px-4 pt-3 pb-3 sm:px-6">
+      <CardContent className="px-4 pt-3 pb-3 sm:px-6 sm:pt-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2 sm:space-y-3">
             <FormField
@@ -250,7 +250,7 @@ function TransactionFormContent() {
               control={form.control}
               name="amount"
               render={({ field }) => (
-                <FormItem className="grid grid-cols-[6rem_1fr] items-center gap-x-3">
+                 <FormItem className="grid grid-cols-[6rem_1fr] items-center gap-x-3">
                   <FormLabel className="text-sm text-muted-foreground">Amount (PHP)</FormLabel>
                   <div className="space-y-1">
                     <FormControl>
@@ -266,7 +266,7 @@ function TransactionFormContent() {
               control={form.control}
               name="categoryId"
               render={({ field }) => (
-                <FormItem className="grid grid-cols-[6rem_1fr] items-center gap-x-3">
+                 <FormItem className="grid grid-cols-[6rem_1fr] items-center gap-x-3">
                   <FormLabel className="text-sm text-muted-foreground">Category</FormLabel>
                   <div className="space-y-1">
                     <Select
@@ -278,7 +278,7 @@ function TransactionFormContent() {
                         <SelectTrigger>
                           <SelectValue placeholder={
                             isLoadingCategories ? "Loading categories..." :
-                              categoriesError ? "Error loading" :
+                              categoriesError ? `Error: ${(categoriesError.message || 'Unknown error').substring(0,30)}...` :
                                 !availableCategories || availableCategories.length === 0 ? `No ${selectedType} categories` :
                                   "Select a category"
                           } />
@@ -292,8 +292,11 @@ function TransactionFormContent() {
                         ))}
                       </SelectContent>
                     </Select>
-                    {categoriesError && <FormMessage>Error loading categories.</FormMessage>}
-                    <FormMessage />
+                    {categoriesError && <FormMessage>{categoriesError.message || 'An unknown error occurred while loading categories.'}</FormMessage>}
+                    {!categoriesError && (!availableCategories || availableCategories.length === 0) && !isLoadingCategories && (
+                      <FormMessage>No {selectedType} categories found. Please add some in 'Manage Categories'.</FormMessage>
+                    )}
+                    <FormMessage /> 
                   </div>
                 </FormItem>
               )}
@@ -330,3 +333,4 @@ function TransactionFormContent() {
 export function TransactionForm() {
   return <TransactionFormContent />;
 }
+

@@ -19,7 +19,7 @@ import type { ChartConfig } from "@/components/ui/chart";
 
 
 const fetchUserCategories = async (userId: string): Promise<Category[]> => {
-  if (!userId) return [];
+  if (!userId || !db) return []; // Added !db check
   const categoriesCol = collection(db, "categories");
   const q = query(categoriesCol, where("userId", "==", userId));
   const snapshot = await getDocs(q);
@@ -27,7 +27,7 @@ const fetchUserCategories = async (userId: string): Promise<Category[]> => {
 };
 
 const fetchMonthlyTransactions = async (userId: string, currentDate: Date): Promise<Transaction[]> => {
-  if (!userId) return [];
+  if (!userId || !db) return []; // Added !db check
   const transactionsCol = collection(db, "transactions");
   
   const monthStart = format(startOfMonth(currentDate), "yyyy-MM-dd");
@@ -49,9 +49,8 @@ const chartColorsHSL = [
   "hsl(var(--chart-3))",
   "hsl(var(--chart-4))",
   "hsl(var(--chart-5))",
-  "hsl(var(--primary))", // Color for Balance if needed
-  "hsl(var(--accent))",   // Extra color
-  // Add more colors if you expect many categories
+  "hsl(var(--primary))",
+  "hsl(var(--accent))",  
 ];
 
 function DashboardPageContent() {
@@ -62,13 +61,13 @@ function DashboardPageContent() {
   const { data: categories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>({
     queryKey: ['categories', user?.uid],
     queryFn: () => fetchUserCategories(user!.uid),
-    enabled: !!user,
+    enabled: !!user && !!db, // Check for db as well
   });
 
   const { data: transactions, isLoading: isLoadingTransactions, error: transactionsError } = useQuery<Transaction[], Error>({
     queryKey: ['monthlyTransactions', user?.uid, currentMonthYearKey],
     queryFn: () => fetchMonthlyTransactions(user!.uid, currentDate),
-    enabled: !!user,
+    enabled: !!user && !!db, // Check for db as well
   });
 
   const dashboardData = React.useMemo(() => {
@@ -92,44 +91,40 @@ function DashboardPageContent() {
     overviewChartConfig: ChartConfig;
   } => {
     if (!transactions || !categories || dashboardData.totalIncome === 0) {
-      // If no income, the chart isn't meaningful for this view
       return { overviewChartData: [], overviewChartConfig: {} };
     }
 
-    const expenseTransactions = transactions.filter(t => t.type === 'expense');
     const chartDataPoints: ChartDataPoint[] = [];
     const dynamicChartConfig: ChartConfig = {};
     let colorIndex = 0;
     const categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
 
-    // Aggregate expenses by category
+    const expenseTransactions = transactions.filter(t => t.type === 'expense');
     if (expenseTransactions.length > 0) {
-        const expensesByCategoryAgg: Record<string, { name: string; value: number }> = {};
-        expenseTransactions.forEach(t => {
-          const categoryName = categoryMap.get(t.categoryId) || 'Uncategorized';
-          if (!expensesByCategoryAgg[categoryName]) {
-            expensesByCategoryAgg[categoryName] = { name: categoryName, value: 0 };
-          }
-          expensesByCategoryAgg[categoryName].value += t.amount;
-        });
+      const expensesByCategoryAgg: Record<string, { name: string; value: number }> = {};
+      expenseTransactions.forEach(t => {
+        const categoryName = categoryMap.get(t.categoryId) || 'Uncategorized';
+        if (!expensesByCategoryAgg[categoryName]) {
+          expensesByCategoryAgg[categoryName] = { name: categoryName, value: 0 };
+        }
+        expensesByCategoryAgg[categoryName].value += t.amount;
+      });
 
-        Object.values(expensesByCategoryAgg)
-          .sort((a, b) => b.value - a.value) // Optional: sort for consistent legend/color order
-          .forEach(item => {
-            const color = chartColorsHSL[colorIndex % chartColorsHSL.length];
-            chartDataPoints.push({ name: item.name, value: item.value, fill: color });
-            dynamicChartConfig[item.name] = {
-              label: item.name,
-              color: color,
-            };
-            colorIndex++;
-          });
+      Object.values(expensesByCategoryAgg)
+        .sort((a, b) => b.value - a.value)
+        .forEach(item => {
+          const color = chartColorsHSL[colorIndex % chartColorsHSL.length];
+          chartDataPoints.push({ name: item.name, value: item.value, fill: color });
+          dynamicChartConfig[item.name] = {
+            label: item.name,
+            color: color,
+          };
+          colorIndex++;
+        });
     }
     
-    // Add Balance slice if it's positive
     if (dashboardData.currentBalance > 0) {
       const balanceCategoryName = "Balance";
-      // Ensure balance color is distinct, potentially use the primary color or the next in chartColorsHSL
       const balanceColor = chartColorsHSL[colorIndex % chartColorsHSL.length] || "hsl(var(--primary))"; 
       chartDataPoints.push({ name: balanceCategoryName, value: dashboardData.currentBalance, fill: balanceColor });
       dynamicChartConfig[balanceCategoryName] = {
@@ -137,9 +132,8 @@ function DashboardPageContent() {
         color: balanceColor,
       };
     } else if (chartDataPoints.length === 0 && dashboardData.totalIncome > 0 && dashboardData.totalExpenses === 0) {
-      // Case: Only income, no expenses, so balance is total income
       const balanceCategoryName = "Balance";
-      const balanceColor = chartColorsHSL[0]; // Use first chart color
+      const balanceColor = chartColorsHSL[0];
       chartDataPoints.push({ name: balanceCategoryName, value: dashboardData.totalIncome, fill: balanceColor });
       dynamicChartConfig[balanceCategoryName] = {
         label: balanceCategoryName,
@@ -162,11 +156,11 @@ function DashboardPageContent() {
           <Skeleton className="h-[120px] w-full" />
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          <div className="lg:col-span-1 order-2 lg:order-1">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+          <div className="lg:col-span-2 order-2 lg:order-1">
             <Skeleton className="h-[500px] w-full" /> 
           </div>
-          <div className="hidden lg:block lg:col-span-2 order-1 lg:order-2">
+          <div className="hidden lg:block lg:col-span-3 order-1 lg:order-2">
             <Skeleton className="h-[400px] w-full" /> 
           </div>
         </div>
@@ -207,15 +201,15 @@ function DashboardPageContent() {
         currentBalance={dashboardData.currentBalance}
       />
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        <div className="lg:col-span-1 order-2 lg:order-1">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+        <div className="lg:col-span-2 order-2 lg:order-1">
            <TransactionForm />
            <Button variant="outline" className="w-full mt-6 border-dashed border-primary text-primary hover:bg-primary/10 hover:text-primary" disabled>
             <ScanLine className="mr-2 h-5 w-5" />
             Scan Receipt with AI (Future)
           </Button>
         </div>
-        <div className="hidden lg:block lg:col-span-2 order-1 lg:order-2">
+        <div className="hidden lg:block lg:col-span-3 order-1 lg:order-2">
           <ExpenseDistributionChart 
             data={overviewChartData} 
             config={overviewChartConfig} 
@@ -236,4 +230,3 @@ export default function DashboardPage() {
     </QueryClientProvider>
   );
 }
-

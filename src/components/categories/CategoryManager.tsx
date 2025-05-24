@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from '@/components/providers/auth-provider';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, updateDoc, deleteDoc, query, where, getDocs, doc, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, query, where, getDocs, doc, Timestamp, serverTimestamp } from 'firebase/firestore'; // Added Timestamp
 import { useQuery, useMutation, QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -319,4 +319,3 @@ export function CategoryManager() {
     </QueryClientProvider>
   );
 }
-

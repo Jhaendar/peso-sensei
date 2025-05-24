@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ScanLine } from "lucide-react";
 import { useAuth } from '@/components/providers/auth-provider';
 import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, Timestamp } from "firebase/firestore"; // Added Timestamp
 import { db } from "@/lib/firebase";
 import type { Transaction, Category, ChartDataPoint } from "@/lib/types";
 import { format, startOfMonth, endOfMonth } from 'date-fns';
@@ -54,7 +55,7 @@ const chartColorsHSL = [
 
 function DashboardPageContent() {
   const { user } = useAuth();
-  const currentDate = new Date(); // For current month's data
+  const currentDate = new Date(); 
   const currentMonthYearKey = format(currentDate, "yyyy-MM");
 
 
@@ -90,44 +91,34 @@ function DashboardPageContent() {
     overviewChartData: ChartDataPoint[];
     overviewChartConfig: ChartConfig;
   } => {
-    if (!transactions || !categories || dashboardData.totalIncome === 0) { // Only show chart if there is income
+    if (!transactions || !categories || isLoadingTransactions || isLoadingCategories) {
       return { overviewChartData: [], overviewChartConfig: {} };
     }
-
-    const chartDataPoints: ChartDataPoint[] = [];
+  
+    const chartDataPointsMap: Record<string, ChartDataPoint> = {};
     const dynamicChartConfig: ChartConfig = {};
     let colorIndex = 0;
     const categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
-
+  
     // Process expenses by category
     const expenseTransactions = transactions.filter(t => t.type === 'expense');
-    if (expenseTransactions.length > 0) {
-      const expensesByCategoryAgg: Record<string, { name: string; value: number }> = {};
-      expenseTransactions.forEach(t => {
-        const categoryName = categoryMap.get(t.categoryId) || 'Uncategorized';
-        if (!expensesByCategoryAgg[categoryName]) {
-          expensesByCategoryAgg[categoryName] = { name: categoryName, value: 0 };
-        }
-        expensesByCategoryAgg[categoryName].value += t.amount;
-      });
-
-      Object.values(expensesByCategoryAgg)
-        .sort((a, b) => b.value - a.value) // Sort for consistent color assignment
-        .forEach(item => {
-          const color = chartColorsHSL[colorIndex % chartColorsHSL.length];
-          chartDataPoints.push({ name: item.name, value: item.value, fill: color });
-          dynamicChartConfig[item.name] = {
-            label: item.name,
-            color: color,
-          };
-          colorIndex++;
-        });
-    }
-    
+    expenseTransactions.forEach(t => {
+      const categoryName = categoryMap.get(t.categoryId) || 'Uncategorized';
+      if (!chartDataPointsMap[categoryName]) {
+        const color = chartColorsHSL[colorIndex % chartColorsHSL.length];
+        chartDataPointsMap[categoryName] = { name: categoryName, value: 0, fill: color };
+        dynamicChartConfig[categoryName] = { label: categoryName, color: color };
+        colorIndex++;
+      }
+      chartDataPointsMap[categoryName].value += t.amount;
+    });
+  
+    let chartDataPoints = Object.values(chartDataPointsMap).sort((a, b) => b.value - a.value);
+  
     // Add balance if it's positive and there's income.
-    if (dashboardData.currentBalance > 0) {
+    if (dashboardData.currentBalance > 0 && dashboardData.totalIncome > 0) {
       const balanceCategoryName = "Balance";
-      const balanceColor = chartColorsHSL[colorIndex % chartColorsHSL.length] || "hsl(var(--primary))"; // Fallback color
+      const balanceColor = chartColorsHSL[colorIndex % chartColorsHSL.length] || "hsl(var(--primary))"; 
       chartDataPoints.push({ name: balanceCategoryName, value: dashboardData.currentBalance, fill: balanceColor });
       dynamicChartConfig[balanceCategoryName] = {
         label: balanceCategoryName,
@@ -136,7 +127,7 @@ function DashboardPageContent() {
     } else if (chartDataPoints.length === 0 && dashboardData.totalIncome > 0 && dashboardData.totalExpenses === 0) {
       // Case where income exists, no expenses, so balance is the full income
       const balanceCategoryName = "Balance";
-      const balanceColor = chartColorsHSL[0]; // Use first color for consistency if only balance shows
+      const balanceColor = chartColorsHSL[0];
       chartDataPoints.push({ name: balanceCategoryName, value: dashboardData.totalIncome, fill: balanceColor });
       dynamicChartConfig[balanceCategoryName] = {
         label: balanceCategoryName,
@@ -145,9 +136,9 @@ function DashboardPageContent() {
     }
     
     return { overviewChartData: chartDataPoints, overviewChartConfig: dynamicChartConfig };
-  }, [transactions, categories, dashboardData.totalIncome, dashboardData.currentBalance]);
+  }, [transactions, categories, dashboardData.totalIncome, dashboardData.currentBalance, isLoadingCategories, isLoadingTransactions]);
   
-  if (isLoadingCategories || (user && isLoadingTransactions && !transactions)) {
+  if (isLoadingCategories || (user && isLoadingTransactions && !transactions && !categoriesError)) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -53,14 +53,14 @@ const fetchUserCategories = async (userId: string | undefined, type: 'income' | 
   return snapshot.docs.map(doc => ({ 
     id: doc.id, 
     ...doc.data(), 
-    createdAt: (doc.data().createdAt as Timestamp)?.toDate ? (doc.data().createdAt as Timestamp).toDate() : new Date() // Fallback for potentially missing or malformed createdAt
+    createdAt: (doc.data().createdAt as Timestamp)?.toDate ? (doc.data().createdAt as Timestamp).toDate() : new Date() 
   } as Category));
 };
 
 function TransactionFormContent() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const queryClientHook = useQueryClient(); // Use hook from provider context
+  const queryClientHook = useQueryClient(); 
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -80,11 +80,10 @@ function TransactionFormContent() {
     queryKey: ['categories', user?.uid, selectedType],
     queryFn: () => fetchUserCategories(user?.uid, selectedType),
     enabled: !!user && !!db,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000, 
   });
 
   React.useEffect(() => {
-    // Reset categoryId if the selected category is no longer in the filtered list
     const currentCategoryId = form.getValues("categoryId");
     if (currentCategoryId && availableCategories && !availableCategories.find(cat => cat.id === currentCategoryId)) {
       form.setValue("categoryId", "");
@@ -113,7 +112,7 @@ function TransactionFormContent() {
     try {
       const transactionData = {
         ...values,
-        date: format(values.date, "yyyy-MM-dd"), // Format date for submission
+        date: format(values.date, "yyyy-MM-dd"), 
         userId: user.uid,
         createdAt: Timestamp.now(),
       };
@@ -132,7 +131,6 @@ function TransactionFormContent() {
         description: "",
       });
       
-      // Invalidate queries to refresh data on dashboard and transactions page
       const currentMonthKey = format(new Date(), "yyyy-MM");
       queryClientHook.invalidateQueries({ queryKey: ['monthlyTransactions', user.uid, currentMonthKey] });
       queryClientHook.invalidateQueries({ queryKey: ['allUserTransactions', user.uid] });
@@ -211,7 +209,7 @@ function TransactionFormContent() {
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="end">
+                      <PopoverContent className="w-auto p-0" side="bottom" align="start" sideOffset={5}>
                         <Calendar
                           mode="single"
                           selected={field.value}
@@ -326,6 +324,5 @@ function TransactionFormContent() {
 }
 
 export function TransactionForm() {
-  // QueryClientProvider is removed from here and will be inherited from DashboardPage
   return <TransactionFormContent />;
 }

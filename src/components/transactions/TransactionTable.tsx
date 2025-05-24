@@ -28,22 +28,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ListFilter } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
-
 
 interface TransactionTableContentProps {
   data: TransactionRow[];
@@ -57,6 +51,7 @@ function TransactionTableContent({ data, categories, isLoading, error }: Transac
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
+  const [selectedCategories, setSelectedCategories] = React.useState<string[]>([]);
 
   const table = useReactTable({
     data: data || [],
@@ -76,6 +71,29 @@ function TransactionTableContent({ data, categories, isLoading, error }: Transac
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
+
+  React.useEffect(() => {
+    table.getColumn("categoryName")?.setFilterValue(selectedCategories.length > 0 ? selectedCategories : undefined);
+  }, [selectedCategories, table]);
+
+  const handleCategoryToggle = (categoryName: string) => {
+    setSelectedCategories(prev => {
+      const newSelected = prev.includes(categoryName)
+        ? prev.filter(name => name !== categoryName)
+        : [...prev, categoryName];
+      return newSelected;
+    });
+  };
+  
+  const getCategoryFilterButtonText = () => {
+    if (selectedCategories.length === 0) {
+      return "Filter by category...";
+    }
+    if (selectedCategories.length === 1) {
+      return selectedCategories[0];
+    }
+    return `${selectedCategories.length} categories selected`;
+  };
 
   if (error) {
     return (
@@ -133,24 +151,40 @@ function TransactionTableContent({ data, categories, isLoading, error }: Transac
           }
           className="w-full sm:max-w-xs"
         />
-         <Select
-          value={(table.getColumn("categoryName")?.getFilterValue() as string) ?? ""}
-          onValueChange={(value) =>
-            table.getColumn("categoryName")?.setFilterValue(value === "all" ? "" : value)
-          }
-        >
-          <SelectTrigger className="w-full sm:max-w-xs">
-            <SelectValue placeholder="Filter by category..." />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full sm:max-w-xs justify-between">
+              {getCategoryFilterButtonText()}
+              <ListFilter className="ml-2 h-4 w-4 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-[--radix-dropdown-menu-trigger-width]">
+            <DropdownMenuLabel>Filter by Category</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {categories.length > 0 && (
+              <DropdownMenuItem
+                onSelect={() => setSelectedCategories([])}
+                className="cursor-pointer"
+              >
+                Clear selection
+              </DropdownMenuItem>
+            )}
             {categories.map((category) => (
-              <SelectItem key={category.id} value={category.name}>
+              <DropdownMenuCheckboxItem
+                key={category.id}
+                checked={selectedCategories.includes(category.name)}
+                onCheckedChange={() => handleCategoryToggle(category.name)}
+                onSelect={(e) => e.preventDefault()} // Prevent closing menu on item select
+              >
                 {category.name}
-              </SelectItem>
+              </DropdownMenuCheckboxItem>
             ))}
-          </SelectContent>
-        </Select>
+            {categories.length === 0 && (
+              <DropdownMenuItem disabled>No categories available</DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
@@ -256,6 +290,7 @@ function TransactionTableContent({ data, categories, isLoading, error }: Transac
 
 export function TransactionTable({ data, categories, isLoading, error }: TransactionTableContentProps) {
   return (
-      <TransactionTableContent data={data} categories={categories} isLoading={isLoading} error={error} />
+      <TransactionTableContent data={data} categories={categories || []} isLoading={isLoading} error={error} />
   );
 }
+

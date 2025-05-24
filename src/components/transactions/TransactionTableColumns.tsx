@@ -2,7 +2,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import type { Transaction, Category } from "@/lib/types";
+import type { TransactionRow } from "@/lib/types";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,8 +16,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-
-export type TransactionRow = Transaction & { categoryName?: string };
 
 export const columns: ColumnDef<TransactionRow>[] = [
   {
@@ -60,7 +58,10 @@ export const columns: ColumnDef<TransactionRow>[] = [
     cell: ({ row }) => {
       const date = row.getValue("date") as string;
       try {
-        return <div className="text-left">{format(new Date(date + 'T00:00:00'), "MMM dd, yyyy")}</div>;
+        // Ensure date is treated as UTC to avoid off-by-one day errors due to timezone conversion
+        const [year, month, day] = date.split('-').map(Number);
+        const utcDate = new Date(Date.UTC(year, month - 1, day));
+        return <div className="text-left">{format(utcDate, "MMM dd, yyyy")}</div>;
       } catch (e) {
         return <div className="text-left">{date}</div>; 
       }
@@ -144,6 +145,13 @@ export const columns: ColumnDef<TransactionRow>[] = [
       );
     },
     cell: ({ row }) => <div className="text-left">{row.getValue("categoryName") || "N/A"}</div>,
+    filterFn: (row, columnId, filterValue: string[] | undefined) => {
+      if (!filterValue || filterValue.length === 0) {
+        return true; // No filter applied or empty filter array
+      }
+      const rowValue = row.getValue(columnId) as string;
+      return filterValue.includes(rowValue);
+    },
   },
   {
     id: "actions",

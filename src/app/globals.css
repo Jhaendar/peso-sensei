@@ -29,12 +29,12 @@ body {
     --input: 220 20% 92%; /* Light mode: Light input background */
     --ring: 260 80% 65%; /* Ring color for focus */
     
-    /* Chart Colors - Light Theme */
-    --chart-1: 260 80% 60%; /* Primary Violet */
-    --chart-2: 260 70% 68%; /* Lighter Violet */
-    --chart-3: 255 75% 55%; /* More Blueish Violet */
-    --chart-4: 265 75% 55%; /* More Magenta Violet */
-    --chart-5: 260 60% 50%; /* Darker Violet */
+    /* Chart Colors - Light Theme (Matching new palette) */
+    --chart-1: 221 78% 50%; /* Blue */
+    --chart-2: 326 75% 58%; /* Pink */
+    --chart-3: 28 82% 59%;  /* Orange */
+    --chart-4: 272 60% 62%; /* Purple */
+    --chart-5: 160 45% 53%; /* Green */
     --radius: 0.5rem;
   }
 
@@ -59,12 +59,12 @@ body {
     --input: 220 20% 22%; /* Dark mode: Dark input background */
     --ring: 260 85% 70%; /* Ring color for focus */
 
-    /* Chart Colors - Dark Theme (matching image) */
-    --chart-1: 260 85% 65%; /* Primary Violet */
-    --chart-2: 260 75% 70%; /* Lighter Violet */
-    --chart-3: 255 80% 60%; /* More Blueish Violet */
-    --chart-4: 265 80% 60%; /* More Magenta Violet */
-    --chart-5: 260 65% 55%; /* Darker Violet */
+    /* Chart Colors - Dark Theme (Matching image palette) */
+    --chart-1: 221 83% 53%; /* Blue */
+    --chart-2: 326 80% 61%; /* Pink */
+    --chart-3: 28 87% 62%;  /* Orange */
+    --chart-4: 272 64% 65%; /* Purple */
+    --chart-5: 160 50% 56%; /* Green */
   }
 }
 

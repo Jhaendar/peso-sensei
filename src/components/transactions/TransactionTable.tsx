@@ -17,8 +17,6 @@ import {
 } from "@tanstack/react-table";
 import type { TransactionRow, Category } from "@/lib/types";
 import { columns } from "./TransactionTableColumns";
-import { addDays } from "date-fns"; // For column definition if needed elsewhere
-
 import {
   Table,
   TableBody,
@@ -41,8 +39,9 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown, ListFilter, Filter, XCircle } from "lucide-react";
-import { Card, CardContent } from "../ui/card";
-import { DateRangePicker } from "@/components/ui/date-range-picker"; // New import
+import { Card, CardContent } from "@/components/ui/card";
+import { DateRangePicker } from "@/components/ui/date-range-picker"; 
+import { Label } from "@/components/ui/label";
 
 interface TransactionTableContentProps {
   data: TransactionRow[];

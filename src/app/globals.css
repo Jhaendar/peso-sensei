@@ -9,62 +9,62 @@ body {
 
 @layer base {
   :root {
-    --background: 0 0% 100%; /* White background */
-    --foreground: 270 10% 15%; /* Dark grayish purple foreground */
+    --background: 0 0% 100%; /* Light mode: White background */
+    --foreground: 222 40% 10%; /* Light mode: Dark text (derived from dark bg) */
     --card: 0 0% 100%;
-    --card-foreground: 270 10% 15%;
+    --card-foreground: 222 40% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 270 10% 15%;
-    --primary: 270 60% 55%; /* Main purple */
-    --primary-foreground: 0 0% 100%; /* White text on primary */
-    --secondary: 270 20% 96%; /* Very light purple/gray */
-    --secondary-foreground: 270 10% 25%; /* Darker purple/gray text on secondary */
-    --muted: 270 20% 96%;
-    --muted-foreground: 270 8% 45%; /* Muted purple/gray text */
-    --accent: 270 60% 90%; /* Light purple accent */
-    --accent-foreground: 270 60% 20%; /* Darker purple text on accent */
+    --popover-foreground: 222 40% 10%;
+    --primary: 260 80% 60%; /* Light mode: Vibrant Violet */
+    --primary-foreground: 0 0% 100%; /* Light mode: White text on primary */
+    --secondary: 220 30% 96%; /* Light mode: Very light gray-blue */
+    --secondary-foreground: 220 40% 20%; /* Light mode: Darker text for secondary */
+    --muted: 220 30% 96%;
+    --muted-foreground: 220 15% 45%; /* Light mode: Muted text */
+    --accent: 260 85% 70%; /* Light mode: Lighter violet for accents */
+    --accent-foreground: 222 40% 10%; /* Light mode: Dark text on light accent */
     --destructive: 0 84.2% 60.2%; /* Standard red */
-    --destructive-foreground: 0 0% 100%; /* White text on destructive */
-    --border: 270 10% 88%; /* Light purple/gray border */
-    --input: 270 10% 88%; /* Light purple/gray input background */
-    --ring: 270 60% 55%; /* Main purple for ring */
+    --destructive-foreground: 0 0% 98%; /* White text on destructive */
+    --border: 220 20% 88%; /* Light mode: Light border */
+    --input: 220 20% 92%; /* Light mode: Light input background */
+    --ring: 260 80% 65%; /* Ring color for focus */
     
-    /* Purple-themed Chart Colors */
-    --chart-1: 270 60% 50%; /* Base purple */
-    --chart-2: 270 50% 65%; /* Lighter purple */
-    --chart-3: 290 60% 60%; /* More magenta purple */
-    --chart-4: 250 50% 55%; /* More indigo purple */
-    --chart-5: 270 40% 40%; /* Darker purple */
+    /* Chart Colors - Light Theme */
+    --chart-1: 260 80% 60%; /* Primary Violet */
+    --chart-2: 260 70% 68%; /* Lighter Violet */
+    --chart-3: 255 75% 55%; /* More Blueish Violet */
+    --chart-4: 265 75% 55%; /* More Magenta Violet */
+    --chart-5: 260 60% 50%; /* Darker Violet */
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 270 10% 10%; /* Very dark purple background */
-    --foreground: 270 10% 95%; /* Very light purple/gray foreground */
-    --card: 270 10% 10%;
-    --card-foreground: 270 10% 95%;
-    --popover: 270 10% 10%;
-    --popover-foreground: 270 10% 95%;
-    --primary: 270 60% 65%; /* Slightly lighter purple for dark mode primary */
-    --primary-foreground: 0 0% 100%; /* White text on primary */
-    --secondary: 270 10% 20%; /* Dark purple/gray secondary */
-    --secondary-foreground: 270 10% 90%; /* Light purple/gray text on secondary */
-    --muted: 270 10% 20%;
-    --muted-foreground: 270 8% 60%; /* Muted light purple/gray text */
-    --accent: 270 20% 25%; /* Darker purple accent for dark mode */
-    --accent-foreground: 270 20% 90%; /* Light purple text on accent */
-    --destructive: 0 70% 50%; /* Slightly desaturated red for dark mode */
-    --destructive-foreground: 0 0% 100%;
-    --border: 270 10% 25%; /* Dark purple/gray border */
-    --input: 270 10% 25%; /* Dark purple/gray input background */
-    --ring: 270 60% 65%; /* Lighter purple for ring in dark mode */
+    --background: 222 40% 10%; /* Dark mode: Very dark blueish-gray */
+    --foreground: 210 20% 95%; /* Dark mode: Off-white text */
+    --card: 220 30% 15%; /* Dark mode: Slightly lighter dark blueish-gray */
+    --card-foreground: 210 20% 95%;
+    --popover: 220 30% 12%; /* Dark mode: Dark popover */
+    --popover-foreground: 210 20% 95%;
+    --primary: 260 85% 65%; /* Dark mode: Vibrant Violet (main interactive color) */
+    --primary-foreground: 0 0% 100%; /* Dark mode: White text on primary */
+    --secondary: 220 25% 25%; /* Dark mode: Muted dark blue/gray */
+    --secondary-foreground: 210 20% 80%; /* Dark mode: Lighter text on secondary */
+    --muted: 220 25% 20%;
+    --muted-foreground: 220 15% 55%; /* Dark mode: Muted text */
+    --accent: 260 90% 70%; /* Dark mode: Bright violet for accents (can be same as primary if preferred) */
+    --accent-foreground: 0 0% 100%; /* Dark mode: White text on accent */
+    --destructive: 0 70% 55%; /* Dark mode: Destructive red */
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 20% 30%; /* Dark mode: Subtle border */
+    --input: 220 20% 22%; /* Dark mode: Dark input background */
+    --ring: 260 85% 70%; /* Ring color for focus */
 
-    /* Purple-themed Chart Colors for Dark Theme */
-    --chart-1: 270 60% 60%;
-    --chart-2: 270 50% 75%;
-    --chart-3: 290 60% 70%;
-    --chart-4: 250 50% 65%;
-    --chart-5: 270 40% 50%;
+    /* Chart Colors - Dark Theme (matching image) */
+    --chart-1: 260 85% 65%; /* Primary Violet */
+    --chart-2: 260 75% 70%; /* Lighter Violet */
+    --chart-3: 255 80% 60%; /* More Blueish Violet */
+    --chart-4: 265 80% 60%; /* More Magenta Violet */
+    --chart-5: 260 65% 55%; /* Darker Violet */
   }
 }
 

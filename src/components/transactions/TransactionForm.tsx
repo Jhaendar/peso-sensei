@@ -1,7 +1,7 @@
 
 "use client";
 
-import type React from "react";
+import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -115,7 +115,7 @@ function TransactionFormContent() {
     try {
       const transactionData = {
         ...values,
-        date: format(values.date, "yyyy-MM-dd"),
+        date: format(values.date, "yyyy-MM-dd"), // Store date as yyyy-MM-dd string
         userId: user.uid,
         createdAt: serverTimestamp(),
       };
@@ -138,30 +138,30 @@ function TransactionFormContent() {
       queryClientHook.invalidateQueries({ queryKey: ['monthlyTransactions', user.uid, currentMonthKey] });
       queryClientHook.invalidateQueries({ queryKey: ['allUserTransactions', user.uid] });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding transaction: ", error);
       toast({
         variant: "destructive",
         title: "Error Adding Transaction",
-        description: "Could not save the transaction. Please try again.",
+        description: "Could not save the transaction. Please try again. " + (error?.message || ""),
       });
     }
   }
 
   return (
     <Card className="w-full shadow-lg">
-      <CardHeader className="px-4 pb-2 pt-4 sm:px-6">
-        <CardTitle className="text-lg sm:text-xl font-semibold flex items-center">
+      <CardHeader className="px-4 pt-3 pb-2 sm:px-6">
+        <CardTitle className="text-base sm:text-lg font-semibold flex items-center">
           {selectedType === "income" ? <Landmark className="mr-2 h-5 w-5 text-green-500" /> : <ShoppingCart className="mr-2 h-5 w-5 text-red-500" />}
           Add New Transaction
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm text-muted-foreground">
-          Quickly record your income or expenses.
+          Record your income or expenses.
         </CardDescription>
       </CardHeader>
-      <CardContent className="px-4 pt-4 pb-4 sm:px-6">
+      <CardContent className="px-4 pt-3 pb-3 sm:px-6">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2 sm:space-y-3">
             <FormField
               control={form.control}
               name="type"
@@ -278,8 +278,9 @@ function TransactionFormContent() {
                         <SelectTrigger>
                           <SelectValue placeholder={
                             isLoadingCategories ? "Loading categories..." :
-                              !availableCategories || availableCategories.length === 0 ? `No ${selectedType} categories` :
-                                "Select a category"
+                              categoriesError ? "Error loading" :
+                                !availableCategories || availableCategories.length === 0 ? `No ${selectedType} categories` :
+                                  "Select a category"
                           } />
                         </SelectTrigger>
                       </FormControl>

@@ -1,14 +1,15 @@
+
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google'; // Import Inter
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/components/providers/auth-provider';
 import { FirebaseProvider } from '@/components/providers/firebase-provider';
+import { ThemeProvider } from "@/components/providers/theme-provider";
 
-// Configure Inter font
 const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-inter', // Define a CSS variable for Inter
+  variable: '--font-inter', 
 });
 
 export const metadata: Metadata = {
@@ -22,15 +23,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      {/* Apply the Inter font variable to the body */}
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <FirebaseProvider>
-          <AuthProvider>
-            {children}
-            <Toaster />
-          </AuthProvider>
-        </FirebaseProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <FirebaseProvider>
+            <AuthProvider>
+              {children}
+              <Toaster />
+            </AuthProvider>
+          </FirebaseProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

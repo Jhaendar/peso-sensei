@@ -11,6 +11,8 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, LogOut, LayoutDashboard, ListChecks, ListFilter } from 'lucide-react';
+import { ThemeToggleButton } from './ThemeToggleButton';
+import type React from 'react';
 
 export function Navbar() {
   const { user } = useAuth();
@@ -42,28 +44,32 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-4">
+        <nav className="hidden md:flex items-center gap-1">
           {user && navLinks.map(link => (
             <Button key={link.href} variant="ghost" asChild>
-              <Link href={link.href} className="flex items-center gap-2">
+              <Link href={link.href} className="flex items-center gap-2 px-3">
                 {link.icon}
                 {link.label}
               </Link>
             </Button>
           ))}
-          {user ? (
-            <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" /> Logout
-            </Button>
-          ) : (
-            <Button asChild>
-              <Link href="/login">Login</Link>
-            </Button>
-          )}
+          <div className="flex items-center gap-2 ml-2">
+            <ThemeToggleButton />
+            {user ? (
+              <Button variant="outline" onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" /> Logout
+              </Button>
+            ) : (
+              <Button asChild>
+                <Link href="/login">Login</Link>
+              </Button>
+            )}
+          </div>
         </nav>
 
         {/* Mobile Navigation */}
-        <div className="md:hidden">
+        <div className="flex items-center gap-2 md:hidden">
+          <ThemeToggleButton />
           {user && (
             <Sheet>
               <SheetTrigger asChild>
@@ -76,8 +82,8 @@ export function Navbar() {
                 <SheetHeader>
                   <SheetTitle className="sr-only">Main Menu</SheetTitle>
                 </SheetHeader>
-                <div className="flex flex-col gap-4 p-4 pt-0">
-                  <Link href="/" className="flex items-center gap-2 mb-4">
+                <div className="flex flex-col gap-4 p-4 pt-0 h-full">
+                  <Link href="/" className="flex items-center gap-2 mb-4 border-b pb-4">
                     <Logo />
                     <span className="font-semibold text-lg">Peso Sensei</span>
                   </Link>
@@ -96,7 +102,7 @@ export function Navbar() {
               </SheetContent>
             </Sheet>
           )}
-           {!user && (
+           {!user && !user && ( // Show login button if no user for mobile view as well
              <Button asChild>
               <Link href="/login">Login</Link>
             </Button>

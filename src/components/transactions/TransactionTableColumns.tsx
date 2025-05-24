@@ -3,7 +3,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import type { TransactionRow } from "@/lib/types";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -16,6 +16,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+
+const SortIndicator = ({ column }: { column: any }) => {
+  const sortDirection = column.getIsSorted();
+  if (sortDirection === "asc") {
+    return <ArrowUp className="ml-2 h-4 w-4" />;
+  }
+  if (sortDirection === "desc") {
+    return <ArrowDown className="ml-2 h-4 w-4" />;
+  }
+  return <ArrowUpDown className="ml-2 h-4 w-4" />;
+};
 
 export const columns: ColumnDef<TransactionRow>[] = [
   {
@@ -51,7 +62,7 @@ export const columns: ColumnDef<TransactionRow>[] = [
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Date
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <SortIndicator column={column} />
         </Button>
       );
     },
@@ -63,7 +74,7 @@ export const columns: ColumnDef<TransactionRow>[] = [
         const utcDate = new Date(Date.UTC(year, month - 1, day));
         return <div className="text-left">{format(utcDate, "MMM dd, yyyy")}</div>;
       } catch (e) {
-        return <div className="text-left">{date}</div>; 
+        return <div className="text-left">{date}</div>;
       }
     },
   },
@@ -76,7 +87,7 @@ export const columns: ColumnDef<TransactionRow>[] = [
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Title
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <SortIndicator column={column} />
         </Button>
       );
     },
@@ -91,7 +102,7 @@ export const columns: ColumnDef<TransactionRow>[] = [
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Category
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <SortIndicator column={column} />
         </Button>
       );
     },
@@ -113,7 +124,7 @@ export const columns: ColumnDef<TransactionRow>[] = [
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Type
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <SortIndicator column={column} />
         </Button>
       );
     },
@@ -139,7 +150,7 @@ export const columns: ColumnDef<TransactionRow>[] = [
           className="text-right w-full justify-end"
         >
           Amount
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <SortIndicator column={column} />
         </Button>
       );
     },
@@ -147,7 +158,7 @@ export const columns: ColumnDef<TransactionRow>[] = [
       const amount = parseFloat(row.getValue("amount"));
       const formatted = new Intl.NumberFormat("en-US", {
         style: "currency",
-        currency: "PHP", 
+        currency: "PHP",
       }).format(amount);
 
       return <div className="text-right font-medium">{formatted}</div>;
@@ -181,4 +192,3 @@ export const columns: ColumnDef<TransactionRow>[] = [
     },
   },
 ];
-

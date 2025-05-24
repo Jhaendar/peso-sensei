@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ListFilter, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { collection, query, where, getDocs, Timestamp } from "firebase/firestore"; // Added Timestamp
+import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Transaction, Category, TransactionRow } from "@/lib/types";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,7 +38,7 @@ const fetchAllUserTransactions = async (userId: string | undefined): Promise<Tra
       id: doc.id,
       ...data,
       createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
-      date: data.date,
+      date: data.date, // Ensure date is preserved as string
     } as Transaction;
   });
 };
@@ -108,7 +108,7 @@ function TransactionsPageContent() {
     return transactions.map(t => ({
       ...t,
       categoryName: categoriesMap.get(t.categoryId) || "Uncategorized",
-      createdAt: t.createdAt instanceof Date ? t.createdAt : (t.createdAt as Timestamp).toDate(), // Ensure createdAt is Date
+      createdAt: t.createdAt, // createdAt is already a Date from fetchAllUserTransactions
     })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions, categories]);
 
@@ -192,3 +192,4 @@ export default function TransactionsPage() {
     </QueryClientProvider>
   );
 }
+

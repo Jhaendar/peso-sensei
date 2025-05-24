@@ -9,7 +9,7 @@ export interface Transaction {
   categoryId: string;
   date: string; // ISO date string e.g. "2024-07-28"
   description?: string;
-  createdAt: Timestamp | Date; // Firestore Timestamp or JS Date
+  createdAt: Date; // Ensure this is always a Date object after fetching
   userId: string;
 }
 
@@ -34,3 +34,4 @@ export interface ChartDataPoint {
   value: number; // Total amount for this category or balance amount
   fill: string; // Color for pie slice (e.g., "hsl(var(--chart-1))")
 }
+

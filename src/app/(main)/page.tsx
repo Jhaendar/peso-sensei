@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ScanLine } from "lucide-react";
 import { useAuth } from '@/components/providers/auth-provider';
 import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { collection, query, where, getDocs, Timestamp } from "firebase/firestore"; // Added Timestamp
+import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Transaction, Category, ChartDataPoint } from "@/lib/types";
 import { format, startOfMonth, endOfMonth } from 'date-fns';
@@ -23,7 +23,15 @@ const fetchUserCategories = async (userId: string): Promise<Category[]> => {
   const categoriesCol = collection(db, "categories");
   const q = query(categoriesCol, where("userId", "==", userId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: (doc.data().createdAt as Timestamp).toDate() } as Category));
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    const createdAtRaw = data.createdAt;
+    return { 
+      id: doc.id, 
+      ...data, 
+      createdAt: createdAtRaw instanceof Timestamp ? createdAtRaw.toDate() : new Date(createdAtRaw) 
+    } as Category;
+  });
 };
 
 const fetchMonthlyTransactions = async (userId: string, currentDate: Date): Promise<Transaction[]> => {
@@ -40,7 +48,15 @@ const fetchMonthlyTransactions = async (userId: string, currentDate: Date): Prom
     where("date", "<=", monthEnd)
   );
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: (doc.data().createdAt as Timestamp).toDate() } as Transaction));
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    const createdAtRaw = data.createdAt;
+    return { 
+      id: doc.id, 
+      ...doc.data(), 
+      createdAt: createdAtRaw instanceof Timestamp ? createdAtRaw.toDate() : new Date(createdAtRaw) 
+    } as Transaction;
+  });
 };
 
 const chartColorsHSL = [
@@ -222,3 +238,4 @@ export default function DashboardPage() {
     </QueryClientProvider>
   );
 }
+

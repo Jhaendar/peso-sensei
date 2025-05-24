@@ -24,7 +24,7 @@ export function ExpenseDistributionChart({ data, config, title }: ExpenseDistrib
   }, [data])
 
 
-  if (data.length === 0) {
+  if (data.length === 0 || data.every(d => d.value === 0)) {
     return (
       <Card className="flex flex-col shadow-lg h-[400px] items-center justify-center">
         <CardHeader className="items-center pb-0">
@@ -33,7 +33,7 @@ export function ExpenseDistributionChart({ data, config, title }: ExpenseDistrib
           </CardTitle>
         </CardHeader>
         <CardContent className="flex-1 pb-0 flex items-center justify-center">
-          <p className="text-muted-foreground">No data to display.</p>
+          <p className="text-muted-foreground">No data to display for this period.</p>
         </CardContent>
       </Card>
     )

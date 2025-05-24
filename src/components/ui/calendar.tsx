@@ -44,10 +44,11 @@ function Calendar({
         ),
         day_range_end: "day-range-end",
         day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
+          "bg-primary text-white hover:bg-primary/90 focus:bg-primary focus:text-white", // Changed to text-white
+        day_today: 
+          "bg-accent/20 text-accent hover:bg-accent/30", // More subtle styling for today
         day_outside:
-          "day-outside text-muted-foreground opacity-50",
+          "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-accent-foreground",
         day_disabled: "text-muted-foreground opacity-50",
         day_range_middle:
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
@@ -55,11 +56,11 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        IconLeft: ({ className, ...props }) => (
-          <ChevronLeft className={cn("h-4 w-4", className)} {...props} />
+        IconLeft: ({ className: iconClassName, ...rest }) => (
+          <ChevronLeft className={cn("h-4 w-4", iconClassName)} {...rest} />
         ),
-        IconRight: ({ className, ...props }) => (
-          <ChevronRight className={cn("h-4 w-4", className)} {...props} />
+        IconRight: ({ className: iconClassName, ...rest }) => (
+          <ChevronRight className={cn("h-4 w-4", iconClassName)} {...rest} />
         ),
       }}
       {...props}

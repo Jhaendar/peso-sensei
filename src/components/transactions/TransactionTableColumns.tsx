@@ -83,27 +83,25 @@ export const columns: ColumnDef<TransactionRow>[] = [
     cell: ({ row }) => <div className="text-left">{row.getValue("title")}</div>,
   },
   {
-    accessorKey: "amount",
+    accessorKey: "categoryName",
     header: ({ column }) => {
       return (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="text-right w-full justify-end"
         >
-          Amount
+          Category
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
     },
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("amount"));
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "PHP", 
-      }).format(amount);
-
-      return <div className="text-right font-medium">{formatted}</div>;
+    cell: ({ row }) => <div className="text-left">{row.getValue("categoryName") || "N/A"}</div>,
+    filterFn: (row, columnId, filterValue: string[] | undefined) => {
+      if (!filterValue || filterValue.length === 0) {
+        return true; // No filter applied or empty filter array
+      }
+      const rowValue = row.getValue(columnId) as string;
+      return filterValue.includes(rowValue);
     },
   },
   {
@@ -132,25 +130,27 @@ export const columns: ColumnDef<TransactionRow>[] = [
     },
   },
   {
-    accessorKey: "categoryName",
+    accessorKey: "amount",
     header: ({ column }) => {
       return (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="text-right w-full justify-end"
         >
-          Category
+          Amount
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
     },
-    cell: ({ row }) => <div className="text-left">{row.getValue("categoryName") || "N/A"}</div>,
-    filterFn: (row, columnId, filterValue: string[] | undefined) => {
-      if (!filterValue || filterValue.length === 0) {
-        return true; // No filter applied or empty filter array
-      }
-      const rowValue = row.getValue(columnId) as string;
-      return filterValue.includes(rowValue);
+    cell: ({ row }) => {
+      const amount = parseFloat(row.getValue("amount"));
+      const formatted = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "PHP", 
+      }).format(amount);
+
+      return <div className="text-right font-medium">{formatted}</div>;
     },
   },
   {
@@ -181,3 +181,4 @@ export const columns: ColumnDef<TransactionRow>[] = [
     },
   },
 ];
+

@@ -15,7 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
+import type { DateRange } from "react-day-picker";
 
 const SortIndicator = ({ column }: { column: any }) => {
   const sortDirection = column.getIsSorted();
@@ -77,6 +78,28 @@ export const columns: ColumnDef<TransactionRow>[] = [
         return <div className="text-left">{date}</div>;
       }
     },
+    filterFn: (row, columnId, filterValue: DateRange | undefined) => {
+      if (!filterValue || (!filterValue.from && !filterValue.to)) {
+        return true;
+      }
+      const rowDateStr = row.getValue(columnId) as string;
+      // Parse rowDateStr: "yyyy-MM-dd"
+      const [year, month, day] = rowDateStr.split('-').map(Number);
+      const rowDate = startOfDay(new Date(Date.UTC(year, month - 1, day)));
+
+      const { from, to } = filterValue;
+      let passesFrom = true;
+      let passesTo = true;
+
+      if (from) {
+        passesFrom = rowDate >= startOfDay(from);
+      }
+      if (to) {
+        // For 'to' date, we should include the entire day, so compare with end of day or start of next day
+        passesTo = rowDate < addDays(startOfDay(to), 1);
+      }
+      return passesFrom && passesTo;
+    },
   },
   {
     accessorKey: "title",
@@ -92,28 +115,6 @@ export const columns: ColumnDef<TransactionRow>[] = [
       );
     },
     cell: ({ row }) => <div className="text-left">{row.getValue("title")}</div>,
-  },
-  {
-    accessorKey: "categoryName",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Category
-          <SortIndicator column={column} />
-        </Button>
-      );
-    },
-    cell: ({ row }) => <div className="text-left">{row.getValue("categoryName") || "N/A"}</div>,
-    filterFn: (row, columnId, filterValue: string[] | undefined) => {
-      if (!filterValue || filterValue.length === 0) {
-        return true; // No filter applied or empty filter array
-      }
-      const rowValue = row.getValue(columnId) as string;
-      return filterValue.includes(rowValue);
-    },
   },
   {
     accessorKey: "type",
@@ -138,6 +139,28 @@ export const columns: ColumnDef<TransactionRow>[] = [
     },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
+    },
+  },
+  {
+    accessorKey: "categoryName",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Category
+          <SortIndicator column={column} />
+        </Button>
+      );
+    },
+    cell: ({ row }) => <div className="text-left">{row.getValue("categoryName") || "N/A"}</div>,
+    filterFn: (row, columnId, filterValue: string[] | undefined) => {
+      if (!filterValue || filterValue.length === 0) {
+        return true; // No filter applied or empty filter array
+      }
+      const rowValue = row.getValue(columnId) as string;
+      return filterValue.includes(rowValue);
     },
   },
   {

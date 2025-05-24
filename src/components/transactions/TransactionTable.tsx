@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import type { DateRange } from "react-day-picker";
 import {
   flexRender,
   getCoreRowModel,
@@ -16,6 +17,7 @@ import {
 } from "@tanstack/react-table";
 import type { TransactionRow, Category } from "@/lib/types";
 import { columns } from "./TransactionTableColumns";
+import { addDays } from "date-fns"; // For column definition if needed elsewhere
 
 import {
   Table,
@@ -36,9 +38,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown, ListFilter } from "lucide-react";
+import { ChevronDown, ListFilter, Filter, XCircle } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
+import { DateRangePicker } from "@/components/ui/date-range-picker"; // New import
 
 interface TransactionTableContentProps {
   data: TransactionRow[];
@@ -52,7 +56,11 @@ function TransactionTableContent({ data, categories, isLoading, error }: Transac
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
+
+  // Local states for filter inputs
+  const [titleFilter, setTitleFilter] = React.useState<string>("");
   const [selectedCategories, setSelectedCategories] = React.useState<string[]>([]);
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
 
   const table = useReactTable({
     data: data || [],
@@ -64,7 +72,7 @@ function TransactionTableContent({ data, categories, isLoading, error }: Transac
       rowSelection,
     },
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: setColumnFilters, // react-table manages this state
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
@@ -73,9 +81,19 @@ function TransactionTableContent({ data, categories, isLoading, error }: Transac
     getPaginationRowModel: getPaginationRowModel(),
   });
 
+  // Apply filters to the table when local filter states change
+  React.useEffect(() => {
+    table.getColumn("title")?.setFilterValue(titleFilter || undefined);
+  }, [titleFilter, table]);
+
   React.useEffect(() => {
     table.getColumn("categoryName")?.setFilterValue(selectedCategories.length > 0 ? selectedCategories : undefined);
   }, [selectedCategories, table]);
+
+  React.useEffect(() => {
+    table.getColumn("date")?.setFilterValue(dateRange);
+  }, [dateRange, table]);
+
 
   const handleCategoryToggle = (categoryName: string) => {
     setSelectedCategories(prev => {
@@ -88,12 +106,19 @@ function TransactionTableContent({ data, categories, isLoading, error }: Transac
   
   const getCategoryFilterButtonText = () => {
     if (selectedCategories.length === 0) {
-      return "Filter by category...";
+      return "Select categories...";
     }
     if (selectedCategories.length === 1) {
       return selectedCategories[0];
     }
     return `${selectedCategories.length} categories selected`;
+  };
+
+  const clearAllFilters = () => {
+    setTitleFilter("");
+    setSelectedCategories([]);
+    setDateRange(undefined);
+    // The useEffects above will propagate these empty values to table.setFilterValue
   };
 
   if (error) {
@@ -110,23 +135,23 @@ function TransactionTableContent({ data, categories, isLoading, error }: Transac
     return (
       <div className="space-y-4">
         <div className="flex items-center py-4">
-          <Skeleton className="h-10 w-full max-w-sm" />
-          <Skeleton className="ml-auto h-10 w-[120px]" />
+          <Skeleton className="h-10 w-24" /> {/* Filter Button Skeleton */}
+          <Skeleton className="ml-auto h-10 w-[120px]" /> {/* Columns Button Skeleton */}
         </div>
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                {columns.map((column) => (
-                   <TableHead key={column.id || `skeleton-head-${column.accessorKey || Math.random()}`}><Skeleton className="h-5 w-20" /></TableHead>
+                {columns.map((columnDef) => (
+                   <TableHead key={columnDef.id || `skeleton-head-${(columnDef as any).accessorKey || Math.random()}`}><Skeleton className="h-5 w-20" /></TableHead>
                 ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {Array(5).fill(null).map((_, rowIndex) => (
                 <TableRow key={rowIndex}>
-                  {columns.map((column) => (
-                    <TableCell key={column.id || `skeleton-cell-${rowIndex}-${column.accessorKey || Math.random()}`}><Skeleton className="h-5 w-full" /></TableCell>
+                  {columns.map((columnDef) => (
+                    <TableCell key={columnDef.id || `skeleton-cell-${rowIndex}-${(columnDef as any).accessorKey || Math.random()}`}><Skeleton className="h-5 w-full" /></TableCell>
                   ))}
                 </TableRow>
               ))}
@@ -143,48 +168,83 @@ function TransactionTableContent({ data, categories, isLoading, error }: Transac
 
   return (
     <div className="w-full">
-      <div className="flex flex-col sm:flex-row items-center py-4 gap-2">
-        <Input
-          placeholder="Filter by title..."
-          value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("title")?.setFilterValue(event.target.value)
-          }
-          className="w-full sm:max-w-xs"
-        />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="w-full sm:max-w-xs justify-between">
-              {getCategoryFilterButtonText()}
-              <ListFilter className="ml-2 h-4 w-4 opacity-50" />
+      <div className="flex items-center py-4 gap-2">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline">
+              <Filter className="mr-2 h-4 w-4" /> Filters
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-[--radix-dropdown-menu-trigger-width]">
-            <DropdownMenuLabel>Filter by Category</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {categories.length > 0 && (
-              <DropdownMenuItem
-                onSelect={() => setSelectedCategories([])}
-                className="cursor-pointer"
-              >
-                Clear selection
-              </DropdownMenuItem>
-            )}
-            {categories.map((category) => (
-              <DropdownMenuCheckboxItem
-                key={category.id}
-                checked={selectedCategories.includes(category.name)}
-                onCheckedChange={() => handleCategoryToggle(category.name)}
-                onSelect={(e) => e.preventDefault()} // Prevent closing menu on item select
-              >
-                {category.name}
-              </DropdownMenuCheckboxItem>
-            ))}
-            {categories.length === 0 && (
-              <DropdownMenuItem disabled>No categories available</DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </PopoverTrigger>
+          <PopoverContent className="w-96 sm:w-[400px] md:w-[450px]" align="start">
+            <div className="grid gap-4">
+              <div className="space-y-1">
+                <h4 className="font-medium leading-none text-lg">Apply Filters</h4>
+                <p className="text-sm text-muted-foreground">
+                  Refine the transactions shown in the table.
+                </p>
+              </div>
+              <div className="grid gap-3">
+                <div>
+                  <Label htmlFor="filter-title" className="text-sm font-medium">Title</Label>
+                  <Input
+                    id="filter-title"
+                    placeholder="Filter by title..."
+                    value={titleFilter}
+                    onChange={(event) => setTitleFilter(event.target.value)}
+                    className="w-full mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Category</Label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between mt-1">
+                        {getCategoryFilterButtonText()}
+                        <ListFilter className="ml-2 h-4 w-4 opacity-50" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-[--radix-dropdown-menu-trigger-width]">
+                      <DropdownMenuLabel>Filter by Category</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {categories.length > 0 && (
+                        <DropdownMenuItem
+                          onSelect={() => setSelectedCategories([])}
+                          className="cursor-pointer"
+                        >
+                          Clear selection
+                        </DropdownMenuItem>
+                      )}
+                      {categories.map((category) => (
+                        <DropdownMenuCheckboxItem
+                          key={category.id}
+                          checked={selectedCategories.includes(category.name)}
+                          onCheckedChange={() => handleCategoryToggle(category.name)}
+                          onSelect={(e) => e.preventDefault()} 
+                        >
+                          {category.name}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                      {categories.length === 0 && (
+                        <DropdownMenuItem disabled>No categories available</DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div>
+                   <Label className="text-sm font-medium">Date Range</Label>
+                   <DateRangePicker
+                    selectedRange={dateRange}
+                    onRangeChange={setDateRange}
+                    className="w-full mt-1"
+                  />
+                </div>
+              </div>
+              <Button variant="ghost" onClick={clearAllFilters} className="text-sm text-destructive hover:bg-destructive/10 justify-start p-2">
+                <XCircle className="mr-2 h-4 w-4"/> Clear All Filters
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -294,4 +354,3 @@ export function TransactionTable({ data, categories, isLoading, error }: Transac
       <TransactionTableContent data={data} categories={categories || []} isLoading={isLoading} error={error} />
   );
 }
-

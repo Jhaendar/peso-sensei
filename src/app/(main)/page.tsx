@@ -49,9 +49,9 @@ const chartColorsHSL = [
   "hsl(var(--chart-3))",
   "hsl(var(--chart-4))",
   "hsl(var(--chart-5))",
-  // Add more colors if you expect more categories, or handle color cycling
-  "hsl(var(--primary))",
-  "hsl(var(--accent))",
+  "hsl(var(--primary))", // Color for Balance if needed
+  "hsl(var(--accent))",   // Extra color
+  // Add more colors if you expect many categories
 ];
 
 function DashboardPageContent() {
@@ -87,48 +87,68 @@ function DashboardPageContent() {
     return { totalIncome, totalExpenses, currentBalance: totalIncome - totalExpenses };
   }, [transactions]);
 
-  const { expenseChartData, expenseChartConfig } = React.useMemo((): {
-    expenseChartData: ChartDataPoint[];
-    expenseChartConfig: ChartConfig;
+  const { overviewChartData, overviewChartConfig } = React.useMemo((): {
+    overviewChartData: ChartDataPoint[];
+    overviewChartConfig: ChartConfig;
   } => {
-    if (!transactions || !categories || transactions.length === 0) {
-      return { expenseChartData: [], expenseChartConfig: {} };
+    if (!transactions || !categories || dashboardData.totalIncome === 0) {
+      // If no income, the chart isn't meaningful for this view
+      return { overviewChartData: [], overviewChartConfig: {} };
     }
 
     const expenseTransactions = transactions.filter(t => t.type === 'expense');
-    if (expenseTransactions.length === 0) {
-      return { expenseChartData: [], expenseChartConfig: {} };
-    }
-
-    const expensesByCategoryAgg: Record<string, { name: string; value: number }> = {};
-    const categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
-
-    expenseTransactions.forEach(t => {
-      const categoryName = categoryMap.get(t.categoryId) || 'Uncategorized';
-      if (!expensesByCategoryAgg[categoryName]) {
-        expensesByCategoryAgg[categoryName] = { name: categoryName, value: 0 };
-      }
-      expensesByCategoryAgg[categoryName].value += t.amount;
-    });
-
     const chartDataPoints: ChartDataPoint[] = [];
     const dynamicChartConfig: ChartConfig = {};
     let colorIndex = 0;
+    const categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
 
-    Object.values(expensesByCategoryAgg)
-      .sort((a, b) => b.value - a.value) // Optional: sort for consistent legend/color order
-      .forEach(item => {
-        const color = chartColorsHSL[colorIndex % chartColorsHSL.length];
-        chartDataPoints.push({ name: item.name, value: item.value, fill: color });
-        dynamicChartConfig[item.name] = {
-          label: item.name,
-          color: color,
-        };
-        colorIndex++;
-      });
+    // Aggregate expenses by category
+    if (expenseTransactions.length > 0) {
+        const expensesByCategoryAgg: Record<string, { name: string; value: number }> = {};
+        expenseTransactions.forEach(t => {
+          const categoryName = categoryMap.get(t.categoryId) || 'Uncategorized';
+          if (!expensesByCategoryAgg[categoryName]) {
+            expensesByCategoryAgg[categoryName] = { name: categoryName, value: 0 };
+          }
+          expensesByCategoryAgg[categoryName].value += t.amount;
+        });
+
+        Object.values(expensesByCategoryAgg)
+          .sort((a, b) => b.value - a.value) // Optional: sort for consistent legend/color order
+          .forEach(item => {
+            const color = chartColorsHSL[colorIndex % chartColorsHSL.length];
+            chartDataPoints.push({ name: item.name, value: item.value, fill: color });
+            dynamicChartConfig[item.name] = {
+              label: item.name,
+              color: color,
+            };
+            colorIndex++;
+          });
+    }
     
-    return { expenseChartData: chartDataPoints, expenseChartConfig: dynamicChartConfig };
-  }, [transactions, categories]);
+    // Add Balance slice if it's positive
+    if (dashboardData.currentBalance > 0) {
+      const balanceCategoryName = "Balance";
+      // Ensure balance color is distinct, potentially use the primary color or the next in chartColorsHSL
+      const balanceColor = chartColorsHSL[colorIndex % chartColorsHSL.length] || "hsl(var(--primary))"; 
+      chartDataPoints.push({ name: balanceCategoryName, value: dashboardData.currentBalance, fill: balanceColor });
+      dynamicChartConfig[balanceCategoryName] = {
+        label: balanceCategoryName,
+        color: balanceColor,
+      };
+    } else if (chartDataPoints.length === 0 && dashboardData.totalIncome > 0 && dashboardData.totalExpenses === 0) {
+      // Case: Only income, no expenses, so balance is total income
+      const balanceCategoryName = "Balance";
+      const balanceColor = chartColorsHSL[0]; // Use first chart color
+      chartDataPoints.push({ name: balanceCategoryName, value: dashboardData.totalIncome, fill: balanceColor });
+      dynamicChartConfig[balanceCategoryName] = {
+        label: balanceCategoryName,
+        color: balanceColor,
+      };
+    }
+    
+    return { overviewChartData: chartDataPoints, overviewChartConfig: dynamicChartConfig };
+  }, [transactions, categories, dashboardData.totalIncome, dashboardData.currentBalance]);
   
   if (isLoadingCategories || (user && isLoadingTransactions && !transactions)) {
     return (
@@ -197,9 +217,9 @@ function DashboardPageContent() {
         </div>
         <div className="hidden lg:block lg:col-span-2 order-1 lg:order-2">
           <ExpenseDistributionChart 
-            data={expenseChartData} 
-            config={expenseChartConfig} 
-            title={`Expense Distribution for ${format(currentDate, "MMMM yyyy")}`} 
+            data={overviewChartData} 
+            config={overviewChartConfig} 
+            title={`Financial Overview for ${format(currentDate, "MMMM yyyy")}`} 
           />
         </div>
       </div>
@@ -216,3 +236,4 @@ export default function DashboardPage() {
     </QueryClientProvider>
   );
 }
+

@@ -1,3 +1,4 @@
+
 import { CategoryManager } from '@/components/categories/CategoryManager';
 import type { Metadata } from 'next';
 

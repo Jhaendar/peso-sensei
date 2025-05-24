@@ -45,7 +45,6 @@ export function ExpenseDistributionChart({ data, config, title }: ExpenseDistrib
         <CardTitle className="text-xl font-semibold">
             {title}
         </CardTitle>
-        {/* <CardDescription>Total: {totalValue.toLocaleString(undefined, {style: 'currency', currency: 'PHP' })}</CardDescription> */}
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         <ChartContainer

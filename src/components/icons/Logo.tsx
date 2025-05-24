@@ -1,3 +1,4 @@
+
 import type React from 'react';
 
 const Logo: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -9,7 +10,7 @@ const Logo: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
-    className="h-8 w-8 text-primary" // Use primary color from theme
+    className="h-8 w-8 text-primary" 
     {...props}
   >
     <path d="M12 2L2 7l10 5 10-5-10-5z"></path>

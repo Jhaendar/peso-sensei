@@ -1,3 +1,4 @@
+
 "use client";
 
 import type React from 'react';
@@ -27,7 +28,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   if (loading) {
-    // Improved loading state: full screen loading
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <div className="space-y-4 p-8 rounded-lg shadow-lg bg-card">

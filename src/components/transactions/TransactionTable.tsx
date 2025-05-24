@@ -1,7 +1,7 @@
 
 "use client";
 
-import * as React from "react";
+import type * as React from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -14,8 +14,6 @@ import {
   type ColumnFiltersState,
   type VisibilityState,
 } from "@tanstack/react-table";
-// Removed QueryClient, QueryClientProvider, useQuery, db, collection, query, where, getDocs, Timestamp, useAuth
-// type Category, Transaction are now imported by the page
 import type { TransactionRow } from "./TransactionTableColumns";
 import { columns } from "./TransactionTableColumns";
 
@@ -53,7 +51,7 @@ function TransactionTableContent({ data, isLoading, error }: TransactionTableCon
   const [rowSelection, setRowSelection] = React.useState({});
   
   const table = useReactTable({
-    data: data || [], // Use data prop, ensure it's an array
+    data: data || [], 
     columns,
     state: {
       sorting,
@@ -91,18 +89,17 @@ function TransactionTableContent({ data, isLoading, error }: TransactionTableCon
         <div className="rounded-md border">
           <Table>
             <TableHeader>
-              {/* Render skeleton headers based on actual column definitions */}
               <TableRow>
-                {columns.map((column, idx) => (
-                   <TableHead key={column.id || `skeleton-head-${idx}`}><Skeleton className="h-5 w-20" /></TableHead>
+                {columns.map((column) => (
+                   <TableHead key={column.id || `skeleton-head-${column.accessorKey || Math.random()}`}><Skeleton className="h-5 w-20" /></TableHead>
                 ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {Array(5).fill(null).map((_, rowIndex) => (
                 <TableRow key={rowIndex}>
-                  {columns.map((column, cellIndex) => (
-                    <TableCell key={column.id || `skeleton-cell-${rowIndex}-${cellIndex}`}><Skeleton className="h-5 w-full" /></TableCell>
+                  {columns.map((column) => (
+                    <TableCell key={column.id || `skeleton-cell-${rowIndex}-${column.accessorKey || Math.random()}`}><Skeleton className="h-5 w-full" /></TableCell>
                   ))}
                 </TableRow>
               ))}
@@ -156,7 +153,6 @@ function TransactionTableContent({ data, isLoading, error }: TransactionTableCon
                       column.toggleVisibility(!!value)
                     }
                   >
-                    {/* Use a more friendly name for display if available */}
                     {typeof column.columnDef.header === 'string' ? column.columnDef.header : column.id}
                   </DropdownMenuCheckboxItem>
                 );
@@ -240,7 +236,6 @@ function TransactionTableContent({ data, isLoading, error }: TransactionTableCon
   );
 }
 
-// QueryClientProvider is removed, as the page will provide it.
 export function TransactionTable({ data, isLoading, error }: TransactionTableContentProps) {
   return (
       <TransactionTableContent data={data} isLoading={isLoading} error={error} />

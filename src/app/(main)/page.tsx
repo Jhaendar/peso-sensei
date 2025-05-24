@@ -19,7 +19,7 @@ import type { ChartConfig } from "@/components/ui/chart";
 
 
 const fetchUserCategories = async (userId: string): Promise<Category[]> => {
-  if (!userId || !db) return []; // Added !db check
+  if (!userId || !db) return [];
   const categoriesCol = collection(db, "categories");
   const q = query(categoriesCol, where("userId", "==", userId));
   const snapshot = await getDocs(q);
@@ -27,7 +27,7 @@ const fetchUserCategories = async (userId: string): Promise<Category[]> => {
 };
 
 const fetchMonthlyTransactions = async (userId: string, currentDate: Date): Promise<Transaction[]> => {
-  if (!userId || !db) return []; // Added !db check
+  if (!userId || !db) return [];
   const transactionsCol = collection(db, "transactions");
   
   const monthStart = format(startOfMonth(currentDate), "yyyy-MM-dd");
@@ -61,13 +61,13 @@ function DashboardPageContent() {
   const { data: categories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>({
     queryKey: ['categories', user?.uid],
     queryFn: () => fetchUserCategories(user!.uid),
-    enabled: !!user && !!db, // Check for db as well
+    enabled: !!user && !!db,
   });
 
   const { data: transactions, isLoading: isLoadingTransactions, error: transactionsError } = useQuery<Transaction[], Error>({
     queryKey: ['monthlyTransactions', user?.uid, currentMonthYearKey],
     queryFn: () => fetchMonthlyTransactions(user!.uid, currentDate),
-    enabled: !!user && !!db, // Check for db as well
+    enabled: !!user && !!db,
   });
 
   const dashboardData = React.useMemo(() => {
@@ -123,6 +123,8 @@ function DashboardPageContent() {
         });
     }
     
+    // Only add balance if it's positive and there's income.
+    // If income is present but expenses are zero, balance represents the full income.
     if (dashboardData.currentBalance > 0) {
       const balanceCategoryName = "Balance";
       const balanceColor = chartColorsHSL[colorIndex % chartColorsHSL.length] || "hsl(var(--primary))"; 
@@ -132,8 +134,9 @@ function DashboardPageContent() {
         color: balanceColor,
       };
     } else if (chartDataPoints.length === 0 && dashboardData.totalIncome > 0 && dashboardData.totalExpenses === 0) {
+      // Case where income exists, no expenses, so balance is the full income
       const balanceCategoryName = "Balance";
-      const balanceColor = chartColorsHSL[0];
+      const balanceColor = chartColorsHSL[0]; // Use first color for consistency if only balance shows
       chartDataPoints.push({ name: balanceCategoryName, value: dashboardData.totalIncome, fill: balanceColor });
       dynamicChartConfig[balanceCategoryName] = {
         label: balanceCategoryName,

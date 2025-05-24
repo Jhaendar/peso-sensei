@@ -1,5 +1,5 @@
 
-"use client"; // Required for hooks like useRouter and useAuth
+"use client"; 
 
 import type React from 'react';
 import { useEffect } from 'react';
@@ -22,7 +22,6 @@ export default function MainLayout({
   // }, [user, loading, router]);
 
   if (loading) {
-    // Optionally, show a more specific loading screen for authenticated routes
     return (
       <div className="flex h-screen items-center justify-center">
         <p>Loading user session...</p>
@@ -30,7 +29,6 @@ export default function MainLayout({
     );
   }
 
-  // If not loading, render children. User can be null if login is bypassed.
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />

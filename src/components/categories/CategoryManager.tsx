@@ -1,7 +1,8 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -47,13 +48,13 @@ const fetchUserCategories = async (userId: string | undefined): Promise<Category
 function CategoryManagerContent() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const queryClientHook = useQueryClient(); // Use hook from provider
+  const queryClientHook = useQueryClient(); 
 
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryType, setNewCategoryType] = useState<'income' | 'expense'>("expense");
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-  const { data: categories, isLoading, error, refetch } = useQuery<Category[], Error>({
+  const { data: categories, isLoading, error } = useQuery<Category[], Error>({
     queryKey: ['categories', user?.uid],
     queryFn: () => fetchUserCategories(user?.uid),
     enabled: !!user && !!db,
@@ -71,8 +72,8 @@ function CategoryManagerContent() {
     onSuccess: () => {
       toast({ title: "Category Added", description: `${newCategoryName} (${newCategoryType}) has been added.` });
       setNewCategoryName("");
-      setNewCategoryType("expense"); // Reset to default
-      queryClientHook.invalidateQueries({ queryKey: ['categories', user?.uid] }); // Invalidate query to refetch
+      setNewCategoryType("expense"); 
+      queryClientHook.invalidateQueries({ queryKey: ['categories', user?.uid] }); 
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", title: "Error Adding Category", description: err.message });
@@ -100,8 +101,6 @@ function CategoryManagerContent() {
   const deleteCategoryMutation = useMutation({
     mutationFn: async (categoryId: string) => {
       if (!user || !db) throw new Error("User or DB not available");
-      // TODO: Before deleting a category, check if it's used by any transactions.
-      // If so, either prevent deletion or ask the user how to handle those transactions.
       const categoryRef = doc(db, "categories", categoryId);
       return deleteDoc(categoryRef);
     },
@@ -297,7 +296,6 @@ function CategoryManagerContent() {
   );
 }
 
-// Create a new QueryClient instance for this page
 const queryClientInstance = new QueryClient();
 
 export function CategoryManager() {

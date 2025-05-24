@@ -17,7 +17,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 
-// This type will be the shape of the data flowing into the table
 export type TransactionRow = Transaction & { categoryName?: string };
 
 export const columns: ColumnDef<TransactionRow>[] = [
@@ -60,12 +59,10 @@ export const columns: ColumnDef<TransactionRow>[] = [
     },
     cell: ({ row }) => {
       const date = row.getValue("date") as string;
-      // Assuming date is "YYYY-MM-DD". For proper date sorting, it might be better to pass Date objects.
-      // However, string sorting for "YYYY-MM-DD" works.
       try {
         return <div className="text-left">{format(new Date(date + 'T00:00:00'), "MMM dd, yyyy")}</div>;
       } catch (e) {
-        return <div className="text-left">{date}</div>; // Fallback if date is not standard
+        return <div className="text-left">{date}</div>; 
       }
     },
   },
@@ -102,7 +99,7 @@ export const columns: ColumnDef<TransactionRow>[] = [
       const amount = parseFloat(row.getValue("amount"));
       const formatted = new Intl.NumberFormat("en-US", {
         style: "currency",
-        currency: "PHP", // Assuming PHP, adjust if needed
+        currency: "PHP", 
       }).format(amount);
 
       return <div className="text-right font-medium">{formatted}</div>;

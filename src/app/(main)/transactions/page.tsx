@@ -1,22 +1,16 @@
 
 "use client";
 
-import type { Metadata } from 'next'; // Metadata can be kept if used in a server component wrapping this client one, or removed if page is fully client.
-import React from 'react';
+import type React from 'react';
 import { TransactionTable } from '@/components/transactions/TransactionTable';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ListFilter, DollarSign, TrendingUp, TrendingDown, Wallet, Loader2 } from 'lucide-react';
+import { ListFilter, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Transaction, Category, TransactionRow } from "@/lib/types";
 import { Skeleton } from '@/components/ui/skeleton';
-
-// export const metadata: Metadata = { // Cannot be used in client component directly
-//   title: 'Transactions - Peso Sensei',
-//   description: 'View and manage your financial transactions.',
-// };
 
 const fetchUserCategories = async (userId: string | undefined): Promise<Category[]> => {
   if (!userId || !db) return [];
@@ -41,7 +35,7 @@ const fetchAllUserTransactions = async (userId: string | undefined): Promise<Tra
       id: doc.id,
       ...data,
       createdAt: (data.createdAt as Timestamp)?.toDate ? (data.createdAt as Timestamp).toDate() : new Date(data.createdAt),
-      date: data.date, // Ensure date is passed through
+      date: data.date, 
     } as Transaction;
   });
 };

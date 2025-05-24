@@ -1,6 +1,7 @@
 
 "use client";
 
+import type React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -27,11 +28,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Landmark, ShoppingCart, Coins, Loader2 } from "lucide-react";
+import { CalendarIcon, Landmark, ShoppingCart, Coins, Loader2, ScanLine } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import React from "react";
-import { addDoc, collection, Timestamp, query, where, getDocs } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, query, where, getDocs, type Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -50,17 +50,20 @@ const fetchUserCategories = async (userId: string | undefined, type: 'income' | 
   const categoriesCol = collection(db, "categories");
   const q = query(categoriesCol, where("userId", "==", userId), where("type", "==", type));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ 
-    id: doc.id, 
-    ...doc.data(), 
-    createdAt: (doc.data().createdAt as Timestamp)?.toDate ? (doc.data().createdAt as Timestamp).toDate() : new Date() 
-  } as Category));
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt)
+    } as Category;
+  }).sort((a, b) => a.name.localeCompare(b.name));
 };
 
 function TransactionFormContent() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const queryClientHook = useQueryClient(); 
+  const queryClientHook = useQueryClient();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -80,7 +83,7 @@ function TransactionFormContent() {
     queryKey: ['categories', user?.uid, selectedType],
     queryFn: () => fetchUserCategories(user?.uid, selectedType),
     enabled: !!user && !!db,
-    staleTime: 5 * 60 * 1000, 
+    staleTime: 5 * 60 * 1000,
   });
 
   React.useEffect(() => {
@@ -112,17 +115,17 @@ function TransactionFormContent() {
     try {
       const transactionData = {
         ...values,
-        date: format(values.date, "yyyy-MM-dd"), 
+        date: format(values.date, "yyyy-MM-dd"),
         userId: user.uid,
-        createdAt: Timestamp.now(),
+        createdAt: serverTimestamp(),
       };
       await addDoc(collection(db, "transactions"), transactionData);
-      
+
       toast({
         title: "Transaction Added",
         description: `Your ${values.type} "${values.title}" has been successfully recorded.`,
       });
-      form.reset({ 
+      form.reset({
         type: "expense",
         title: "",
         amount: 0,
@@ -130,7 +133,7 @@ function TransactionFormContent() {
         date: new Date(),
         description: "",
       });
-      
+
       const currentMonthKey = format(new Date(), "yyyy-MM");
       queryClientHook.invalidateQueries({ queryKey: ['monthlyTransactions', user.uid, currentMonthKey] });
       queryClientHook.invalidateQueries({ queryKey: ['allUserTransactions', user.uid] });
@@ -144,27 +147,27 @@ function TransactionFormContent() {
       });
     }
   }
-  
+
   return (
     <Card className="w-full shadow-lg">
-      <CardHeader className="px-4 pb-3 pt-4 sm:px-6 sm:pb-2">
+      <CardHeader className="px-4 pb-2 pt-4 sm:px-6">
         <CardTitle className="text-lg sm:text-xl font-semibold flex items-center">
-          {selectedType === "income" ? <Landmark className="mr-2 h-5 w-5 sm:h-6 sm:w-6 text-green-500" /> : <ShoppingCart className="mr-2 h-5 w-5 sm:h-6 sm:w-6 text-red-500" />}
+          {selectedType === "income" ? <Landmark className="mr-2 h-5 w-5 text-green-500" /> : <ShoppingCart className="mr-2 h-5 w-5 text-red-500" />}
           Add New Transaction
         </CardTitle>
-        <CardDescription className="text-xs sm:text-sm">
+        <CardDescription className="text-xs sm:text-sm text-muted-foreground">
           Quickly record your income or expenses.
         </CardDescription>
       </CardHeader>
-      <CardContent className="px-4 pt-2 pb-4 sm:px-6 sm:pt-2">
+      <CardContent className="px-4 pt-4 pb-4 sm:px-6">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2 sm:space-y-3">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
             <FormField
               control={form.control}
               name="type"
               render={({ field }) => (
-                <FormItem className="grid grid-cols-[8rem_1fr] items-center gap-x-3">
-                  <FormLabel>Type</FormLabel>
+                <FormItem className="grid grid-cols-[6rem_1fr] items-center gap-x-3">
+                  <FormLabel className="text-sm text-muted-foreground">Type</FormLabel>
                   <div className="space-y-1">
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
@@ -187,8 +190,8 @@ function TransactionFormContent() {
               control={form.control}
               name="date"
               render={({ field }) => (
-                <FormItem className="grid grid-cols-[8rem_1fr] items-center gap-x-3">
-                  <FormLabel>Date</FormLabel>
+                <FormItem className="grid grid-cols-[6rem_1fr] items-center gap-x-3">
+                  <FormLabel className="text-sm text-muted-foreground">Date</FormLabel>
                   <div className="space-y-1">
                     <Popover>
                       <PopoverTrigger asChild>
@@ -226,13 +229,13 @@ function TransactionFormContent() {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="title"
               render={({ field }) => (
-                <FormItem className="grid grid-cols-[8rem_1fr] items-center gap-x-3">
-                  <FormLabel>Title</FormLabel>
+                <FormItem className="grid grid-cols-[6rem_1fr] items-center gap-x-3">
+                  <FormLabel className="text-sm text-muted-foreground">Title</FormLabel>
                   <div className="space-y-1">
                     <FormControl>
                       <Input placeholder="e.g., Weekly Groceries" {...field} />
@@ -247,8 +250,8 @@ function TransactionFormContent() {
               control={form.control}
               name="amount"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount (PHP)</FormLabel>
+                <FormItem className="grid grid-cols-[6rem_1fr] items-center gap-x-3">
+                  <FormLabel className="text-sm text-muted-foreground">Amount (PHP)</FormLabel>
                   <div className="space-y-1">
                     <FormControl>
                       <Input type="number" placeholder="0.00" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />
@@ -263,20 +266,20 @@ function TransactionFormContent() {
               control={form.control}
               name="categoryId"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
+                <FormItem className="grid grid-cols-[6rem_1fr] items-center gap-x-3">
+                  <FormLabel className="text-sm text-muted-foreground">Category</FormLabel>
                   <div className="space-y-1">
-                    <Select 
-                        onValueChange={field.onChange} 
-                        value={field.value} 
-                        disabled={isLoadingCategories || !availableCategories || availableCategories.length === 0}
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={isLoadingCategories || !availableCategories || availableCategories.length === 0}
                     >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder={
-                            isLoadingCategories ? "Loading categories..." : 
-                            !availableCategories || availableCategories.length === 0 ? `No ${selectedType} categories` : 
-                            "Select a category"
+                            isLoadingCategories ? "Loading categories..." :
+                              !availableCategories || availableCategories.length === 0 ? `No ${selectedType} categories` :
+                                "Select a category"
                           } />
                         </SelectTrigger>
                       </FormControl>
@@ -289,7 +292,7 @@ function TransactionFormContent() {
                       </SelectContent>
                     </Select>
                     {categoriesError && <FormMessage>Error loading categories.</FormMessage>}
-                    <FormMessage /> 
+                    <FormMessage />
                   </div>
                 </FormItem>
               )}
@@ -300,7 +303,7 @@ function TransactionFormContent() {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormLabel className="text-sm text-muted-foreground">Description (Optional)</FormLabel>
                   <FormControl>
                     <Textarea placeholder="e.g., Bought items from SM Supermarket including milk, bread, eggs..." {...field} />
                   </FormControl>

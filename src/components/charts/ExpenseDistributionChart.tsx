@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -24,11 +23,11 @@ export function ExpenseDistributionChart({ data, config, title }: ExpenseDistrib
   }, [data])
 
 
-  if (data.length === 0 || data.every(d => d.value === 0)) {
+  if (!data || data.length === 0 || data.every(d => d.value === 0)) {
     return (
       <Card className="flex flex-col shadow-lg h-[400px] items-center justify-center">
-        <CardHeader className="items-center pb-0">
-          <CardTitle className="text-xl font-semibold">
+        <CardHeader className="items-center pb-0 px-4 pt-4">
+          <CardTitle className="text-lg font-semibold text-center">
               {title}
           </CardTitle>
         </CardHeader>
@@ -40,16 +39,16 @@ export function ExpenseDistributionChart({ data, config, title }: ExpenseDistrib
   }
 
   return (
-    <Card className="flex flex-col shadow-lg">
-      <CardHeader className="items-center pb-0">
-        <CardTitle className="text-xl font-semibold">
+    <Card className="flex flex-col shadow-lg h-[400px]">
+      <CardHeader className="items-center pb-2 px-4 pt-4">
+        <CardTitle className="text-lg font-semibold text-center">
             {title}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         <ChartContainer
           config={config}
-          className="mx-auto aspect-square max-h-[300px] sm:max-h-[350px]"
+          className="mx-auto aspect-square max-h-[300px] sm:max-h-[320px]"
         >
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -63,18 +62,19 @@ export function ExpenseDistributionChart({ data, config, title }: ExpenseDistrib
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                outerRadius={110}
+                outerRadius={100} // Slightly smaller radius for compactness
                 innerRadius={0} 
-                strokeWidth={1}
+                strokeWidth={1.5}
               >
-                {data.map((entry) => (
-                  <Cell key={`cell-${entry.name}`} fill={entry.fill} stroke={entry.fill} />
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}-${entry.name}`} fill={entry.fill} stroke={entry.fill} />
                 ))}
               </Pie>
                <Legend 
-                 wrapperStyle={{fontSize: "0.8rem", paddingTop: "20px"}}
+                 wrapperStyle={{fontSize: "0.75rem", paddingTop: "10px"}} // Smaller font, less padding
                  align="center" 
                  layout="horizontal"
+                 iconSize={10} // Smaller legend icon
                />
             </PieChart>
           </ResponsiveContainer>

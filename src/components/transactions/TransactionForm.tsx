@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 import { CalendarIcon, Landmark, ShoppingCart, Coins, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { addDoc, collection, serverTimestamp, query, where, getDocs, type Timestamp } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, query, where, getDocs, Timestamp } from "firebase/firestore"; // Import Timestamp as value
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -52,10 +52,11 @@ const fetchUserCategories = async (userId: string | undefined, type: 'income' | 
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => {
     const data = doc.data();
+    const createdAtRaw = data.createdAt;
     return {
       id: doc.id,
       ...data,
-      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt)
+      createdAt: createdAtRaw instanceof Timestamp ? createdAtRaw.toDate() : new Date(createdAtRaw)
     } as Category;
   }).sort((a, b) => a.name.localeCompare(b.name));
 };
@@ -115,7 +116,7 @@ function TransactionFormContent() {
     try {
       const transactionData = {
         ...values,
-        date: format(values.date, "yyyy-MM-dd"), 
+        date: format(values.date, "yyyy-MM-dd"),
         userId: user.uid,
         createdAt: serverTimestamp(),
       };
@@ -292,11 +293,12 @@ function TransactionFormContent() {
                         ))}
                       </SelectContent>
                     </Select>
-                    {categoriesError && <FormMessage>{categoriesError.message || 'An unknown error occurred while loading categories.'}</FormMessage>}
+                    {categoriesError && <FormMessage>{(categoriesError.message || 'An unknown error occurred while loading categories.')}</FormMessage>}
                     {!categoriesError && (!availableCategories || availableCategories.length === 0) && !isLoadingCategories && (
                       <FormMessage>No {selectedType} categories found. Please add some in 'Manage Categories'.</FormMessage>
                     )}
-                    <FormMessage /> 
+                    {/* This FormMessage below is for react-hook-form's validation errors for this specific field */}
+                    <FormMessage />
                   </div>
                 </FormItem>
               )}
@@ -333,4 +335,3 @@ function TransactionFormContent() {
 export function TransactionForm() {
   return <TransactionFormContent />;
 }
-

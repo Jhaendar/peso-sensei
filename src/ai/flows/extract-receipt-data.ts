@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Extracts data from a receipt image using GenAI.
@@ -16,13 +17,14 @@ const ExtractReceiptDataInputSchema = z.object({
     .describe(
       "A photo of a receipt, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
+  availableCategoryNames: z.array(z.string()).describe("A list of available category names for the AI to choose from."),
 });
 export type ExtractReceiptDataInput = z.infer<typeof ExtractReceiptDataInputSchema>;
 
 const ExtractReceiptDataOutputSchema = z.object({
   amount: z.number().describe('The total amount on the receipt.'),
   date: z.string().describe('The date on the receipt (YYYY-MM-DD).'),
-  category: z.string().describe('The category of the expense on the receipt.'),
+  category: z.string().describe('The suggested category of the expense on the receipt, chosen from the provided list or "Other".'),
 });
 export type ExtractReceiptDataOutput = z.infer<typeof ExtractReceiptDataOutputSchema>;
 
@@ -34,13 +36,20 @@ const prompt = ai.definePrompt({
   name: 'extractReceiptDataPrompt',
   input: {schema: ExtractReceiptDataInputSchema},
   output: {schema: ExtractReceiptDataOutputSchema},
-  prompt: `You are an expert at extracting data from receipts.
+  prompt: `You are an expert at extracting data from receipts and categorizing expenses.
 
-You will be given a photo of a receipt, and you will extract the following information:
+You will be given a photo of a receipt and a list of available expense categories.
+Extract the following information:
 - The total amount on the receipt.
-- The date on the receipt (YYYY-MM-DD).
-- The category of the expense on the receipt.
+- The date on the receipt (in YYYY-MM-DD format).
+- The most appropriate category for the expense from the provided list.
 
+Available Categories:
+{{#each availableCategoryNames}}
+- {{this}}
+{{/each}}
+
+If none of the provided categories seem appropriate, suggest "Other" as the category.
 Return the data in JSON format.
 
 Receipt Photo: {{media url=photoDataUri}}`,
@@ -53,7 +62,12 @@ const extractReceiptDataFlow = ai.defineFlow(
     outputSchema: ExtractReceiptDataOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    // Ensure availableCategoryNames is not empty, provide a default if it is
+    const flowInput = {
+      ...input,
+      availableCategoryNames: input.availableCategoryNames.length > 0 ? input.availableCategoryNames : ["General Expense", "Miscellaneous", "Other"],
+    };
+    const {output} = await prompt(flowInput);
     return output!;
   }
 );

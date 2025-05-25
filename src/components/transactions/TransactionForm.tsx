@@ -28,13 +28,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Landmark, ShoppingCart, Coins, Loader2 } from "lucide-react";
-import { format } from "date-fns";
+import { CalendarIcon, Landmark, ShoppingCart, Coins, Loader2, Scan } from "lucide-react";
+import { format, parse } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { addDoc, collection, serverTimestamp, query, where, getDocs, Timestamp } from "firebase/firestore"; // Import Timestamp as value
+import { addDoc, collection, serverTimestamp, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { extractReceiptData, type ExtractReceiptDataOutput } from "@/ai/flows/extract-receipt-data";
 
 const formSchema = z.object({
   type: z.enum(["income", "expense"], { required_error: "Please select a transaction type." }),
@@ -65,6 +66,8 @@ function TransactionFormContent() {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClientHook = useQueryClient();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isScanning, setIsScanning] = React.useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -82,7 +85,7 @@ function TransactionFormContent() {
 
   const { data: availableCategories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>({
     queryKey: ['categories', user?.uid, selectedType],
-    queryFn: () => fetchUserCategories(user!.uid, selectedType),
+    queryFn: () => fetchUserCategories(user?.uid, selectedType),
     enabled: !!user && !!db && !!selectedType,
     staleTime: 5 * 60 * 1000,
   });
@@ -136,8 +139,8 @@ function TransactionFormContent() {
       });
 
       const currentMonthKey = format(new Date(), "yyyy-MM");
-      queryClientHook.invalidateQueries({ queryKey: ['monthlyTransactions', user.uid, currentMonthKey] });
-      queryClientHook.invalidateQueries({ queryKey: ['allUserTransactions', user.uid] });
+      queryClientHook.invalidateQueries({ queryKey: ['monthlyTransactions', user?.uid, currentMonthKey] });
+      queryClientHook.invalidateQueries({ queryKey: ['allUserTransactions', user?.uid] });
 
     } catch (error: any) {
       console.error("Error adding transaction: ", error);
@@ -148,6 +151,92 @@ function TransactionFormContent() {
       });
     }
   }
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!user || !availableCategories) {
+      toast({
+        variant: "destructive",
+        title: "Scan Error",
+        description: "User or categories not available. Cannot process receipt.",
+      });
+      return;
+    }
+    if (selectedType !== 'expense') {
+      toast({
+        variant: "destructive",
+        title: "Scan Not Applicable",
+        description: "Receipt scanning is only available for expense transactions.",
+      });
+      return;
+    }
+
+    setIsScanning(true);
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async () => {
+        const photoDataUri = reader.result as string;
+        const categoryNames = availableCategories.map(cat => cat.name);
+
+        const result: ExtractReceiptDataOutput = await extractReceiptData({
+          photoDataUri,
+          availableCategoryNames: categoryNames,
+        });
+
+        form.setValue("amount", result.amount > 0 ? result.amount : 0);
+        if (result.date) {
+          try {
+            const parsedDate = parse(result.date, "yyyy-MM-dd", new Date());
+            if (!isNaN(parsedDate.valueOf())) {
+                 form.setValue("date", parsedDate);
+            } else {
+                toast({ variant: "destructive", title: "AI Error", description: `AI returned an invalid date format: ${result.date}. Please set manually.` });
+            }
+          } catch (e) {
+             toast({ variant: "destructive", title: "AI Error", description: `Could not parse date from AI: ${result.date}. Please set manually.` });
+          }
+        }
+
+        if (result.category && result.category !== "Other") {
+          const matchedCategory = availableCategories.find(
+            (cat) => cat.name.toLowerCase() === result.category.toLowerCase()
+          );
+          if (matchedCategory && matchedCategory.id) {
+            form.setValue("categoryId", matchedCategory.id);
+            toast({ title: "AI Suggestion", description: `Category set to: ${matchedCategory.name}` });
+          } else {
+            toast({ title: "AI Suggestion", description: `AI suggested category: "${result.category}". Please select from the list or add it.` });
+          }
+        } else if (result.category === "Other") {
+            toast({ title: "AI Suggestion", description: `AI suggested "Other" category. Please select from the list.` });
+        }
+        
+        toast({
+          title: "Receipt Scanned",
+          description: "Review the details and submit.",
+        });
+      };
+      reader.onerror = () => {
+        toast({ variant: "destructive", title: "File Error", description: "Could not read the selected file." });
+      };
+    } catch (error: any) {
+      console.error("Error scanning receipt: ", error);
+      toast({
+        variant: "destructive",
+        title: "AI Scan Failed",
+        description: error.message || "Could not process the receipt image.",
+      });
+    } finally {
+      setIsScanning(false);
+      // Reset file input value to allow re-selecting the same file
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   return (
     <Card className="w-full shadow-lg">
@@ -186,6 +275,35 @@ function TransactionFormContent() {
                 </FormItem>
               )}
             />
+
+            {selectedType === 'expense' && (
+              <FormItem className="grid grid-cols-[6rem_1fr] items-center gap-x-3">
+                <FormLabel className="text-sm text-muted-foreground">Receipt</FormLabel>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal border-primary/50 text-primary hover:bg-primary/10 hover:text-primary"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isScanning || !user || isLoadingCategories}
+                >
+                  {isScanning ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Scan className="mr-2 h-4 w-4" />
+                  )}
+                  {isScanning ? "Scanning..." : "Scan Receipt with AI"}
+                </Button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  accept="image/*"
+                  disabled={isScanning}
+                />
+              </FormItem>
+            )}
+
 
             <FormField
               control={form.control}
@@ -297,8 +415,7 @@ function TransactionFormContent() {
                     {!categoriesError && (!availableCategories || availableCategories.length === 0) && !isLoadingCategories && (
                       <FormMessage>No {selectedType} categories found. Please add some in 'Manage Categories'.</FormMessage>
                     )}
-                    {/* This FormMessage below is for react-hook-form's validation errors for this specific field */}
-                    <FormMessage />
+                    <FormMessage /> {/* For react-hook-form's own validation errors */}
                   </div>
                 </FormItem>
               )}
@@ -317,7 +434,7 @@ function TransactionFormContent() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={form.formState.isSubmitting || !user || !db}>
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={form.formState.isSubmitting || !user || !db || isScanning}>
               {form.formState.isSubmitting ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               ) : (

@@ -10,7 +10,7 @@ import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, LogOut, LayoutDashboard, ListChecks, ListFilter } from 'lucide-react';
+import { Menu, LogOut, LayoutDashboard, ListChecks, ListFilter, PieChart } from 'lucide-react'; // Added PieChart
 import { ThemeToggleButton } from './ThemeToggleButton';
 import type React from 'react';
 
@@ -33,6 +33,7 @@ export function Navbar() {
     { href: '/', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
     { href: '/transactions', label: 'Transactions', icon: <ListFilter className="h-5 w-5" /> },
     { href: '/categories', label: 'Categories', icon: <ListChecks className="h-5 w-5" /> },
+    { href: '/reports', label: 'Reports', icon: <PieChart className="h-5 w-5" /> }, // New Reports link
   ];
 
   return (
@@ -102,7 +103,7 @@ export function Navbar() {
               </SheetContent>
             </Sheet>
           )}
-           {!user && !user && ( // Show login button if no user for mobile view as well
+           {!user && ( // Show login button if no user for mobile view as well
              <Button asChild>
               <Link href="/login">Login</Link>
             </Button>

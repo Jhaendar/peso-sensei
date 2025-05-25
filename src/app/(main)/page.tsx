@@ -14,10 +14,10 @@ import type { Transaction, Category, ChartDataPoint } from "@/lib/types";
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ExpenseDistributionChart } from "@/components/charts/ExpenseDistributionChart"; // Import the chart
-import type { ChartConfig } from "@/components/ui/chart"; // Import ChartConfig
+import { ExpenseDistributionChart } from "@/components/charts/ExpenseDistributionChart";
+import type { ChartConfig } from "@/components/ui/chart";
 
-const fetchUserCategories = async (userId: string): Promise<Category[]> => {
+const fetchUserCategories = async (userId: string | undefined): Promise<Category[]> => {
   if (!userId || !db) return [];
   const categoriesCol = collection(db, "categories");
   const q = query(categoriesCol, where("userId", "==", userId));
@@ -25,18 +25,18 @@ const fetchUserCategories = async (userId: string): Promise<Category[]> => {
   return snapshot.docs.map(doc => {
     const data = doc.data();
     const createdAtRaw = data.createdAt;
-    return { 
-      id: doc.id, 
-      ...data, 
-      createdAt: createdAtRaw instanceof Timestamp ? createdAtRaw.toDate() : new Date(createdAtRaw) 
+    return {
+      id: doc.id,
+      ...data,
+      createdAt: createdAtRaw instanceof Timestamp ? createdAtRaw.toDate() : new Date(createdAtRaw)
     } as Category;
   });
 };
 
-const fetchMonthlyTransactions = async (userId: string, currentDate: Date): Promise<Transaction[]> => {
+const fetchMonthlyTransactions = async (userId: string | undefined, currentDate: Date): Promise<Transaction[]> => {
   if (!userId || !db) return [];
   const transactionsCol = collection(db, "transactions");
-  
+
   const monthStart = format(startOfMonth(currentDate), "yyyy-MM-dd");
   const monthEnd = format(endOfMonth(currentDate), "yyyy-MM-dd");
 
@@ -50,10 +50,10 @@ const fetchMonthlyTransactions = async (userId: string, currentDate: Date): Prom
   return snapshot.docs.map(doc => {
     const data = doc.data();
     const createdAtRaw = data.createdAt;
-    return { 
-      id: doc.id, 
-      ...doc.data(), 
-      createdAt: createdAtRaw instanceof Timestamp ? createdAtRaw.toDate() : new Date(createdAtRaw) 
+    return {
+      id: doc.id,
+      ...data,
+      createdAt: createdAtRaw instanceof Timestamp ? createdAtRaw.toDate() : new Date(createdAtRaw)
     } as Transaction;
   });
 };
@@ -63,20 +63,19 @@ const chartColorsHSL = [
   "hsl(var(--chart-2))",
   "hsl(var(--chart-3))",
   "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
-  "hsl(var(--primary))", 
-  "hsl(var(--accent))", 
+  "hsl(var(--primary))",
+  "hsl(var(--accent))",
 ];
-
+const balanceSliceColor = "hsl(var(--chart-5))"; // Green color for balance
 
 function DashboardPageContent() {
   const { user } = useAuth();
-  const currentDate = new Date(); 
+  const currentDate = new Date();
   const currentMonthYearKey = format(currentDate, "yyyy-MM");
 
   const { data: categories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>({
     queryKey: ['categories', user?.uid],
-    queryFn: () => fetchUserCategories(user!.uid),
+    queryFn: () => fetchUserCategories(user?.uid),
     enabled: !!user && !!db,
   });
 
@@ -88,10 +87,10 @@ function DashboardPageContent() {
 
   const dashboardData = React.useMemo(() => {
     if (!transactions) return { totalIncome: 0, totalExpenses: 0, currentBalance: 0 };
-    
+
     let totalIncome = 0;
     let totalExpenses = 0;
-    
+
     transactions.forEach(t => {
       if (t.type === 'income') {
         totalIncome += t.amount;
@@ -126,47 +125,45 @@ function DashboardPageContent() {
       }
       chartDataPointsMap[categoryName].value += t.amount;
     });
-    
+
     let finalChartData = Object.values(chartDataPointsMap).sort((a, b) => b.value - a.value);
-    
-    if (dashboardData.currentBalance > 0) {
-        const balanceCategoryName = "Balance";
-        const balanceColor = chartColorsHSL[colorIndex % chartColorsHSL.length] || "hsl(var(--foreground))"; // A fallback color
-        finalChartData.push({ name: balanceCategoryName, value: dashboardData.currentBalance, fill: balanceColor });
-        dynamicChartConfig[balanceCategoryName] = {
-          label: balanceCategoryName,
-          color: balanceColor,
-        };
+
+    if (dashboardData.currentBalance > 0 && dashboardData.totalIncome > 0) {
+      const balanceCategoryName = "Balance";
+      finalChartData.push({ name: balanceCategoryName, value: dashboardData.currentBalance, fill: balanceSliceColor });
+      dynamicChartConfig[balanceCategoryName] = {
+        label: balanceCategoryName,
+        color: balanceSliceColor,
+      };
     } else if (finalChartData.length === 0 && dashboardData.totalIncome > 0 && dashboardData.totalExpenses === 0) {
-        // Case: income exists, no expenses, so balance is the full income
-        const balanceCategoryName = "Balance";
-        const balanceColor = chartColorsHSL[0]; 
-        finalChartData.push({ name: balanceCategoryName, value: dashboardData.totalIncome, fill: balanceColor });
-        dynamicChartConfig[balanceCategoryName] = {
-          label: balanceCategoryName,
-          color: balanceColor,
-        };
+      // Case: income exists, no expenses, so balance is the full income
+      const balanceCategoryName = "Balance";
+      finalChartData.push({ name: balanceCategoryName, value: dashboardData.totalIncome, fill: balanceSliceColor });
+      dynamicChartConfig[balanceCategoryName] = {
+        label: balanceCategoryName,
+        color: balanceSliceColor,
+      };
     }
-    
+
     return { expenseChartData: finalChartData, expenseChartConfig: dynamicChartConfig };
   }, [transactions, categories, dashboardData.totalIncome, dashboardData.currentBalance, isLoadingCategories, isLoadingTransactions]);
-  
+
   if ((isLoadingTransactions || isLoadingCategories) && user && !(transactionsError || categoriesError)) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Skeleton className="h-[88px] w-full" /> {/* Approx height of MiniDashboard StatCard */}
-          <Skeleton className="h-[88px] w-full" />
-          <Skeleton className="h-[88px] w-full" />
+          <Skeleton className="h-[72px] w-full" /> {/* Adjusted height of MiniDashboard StatCard */}
+          <Skeleton className="h-[72px] w-full" />
+          <Skeleton className="h-[72px] w-full" />
         </div>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
           <div className="lg:col-span-2 order-2 lg:order-1 space-y-4">
             <Skeleton className="h-[500px] w-full" /> {/* Approx height of TransactionForm Card */}
             <Skeleton className="h-[40px] w-full" /> {/* Approx height of Scan Receipt Button */}
           </div>
           <div className="lg:col-span-3 order-1 lg:order-2 hidden lg:block"> {/* Chart for desktop */}
-            <Skeleton className="h-[400px] w-full" /> {/* Approx height of Chart Card */}
+            <Skeleton className="h-[350px] w-full" /> {/* Approx height of Chart Card */}
           </div>
         </div>
       </div>
@@ -184,42 +181,42 @@ function DashboardPageContent() {
       </Card>
     );
   }
-  
+
   if (!user && !isLoadingTransactions && !isLoadingCategories) {
-     return (
-        <div className="space-y-6 text-center">
-            <p>Please log in to view your dashboard.</p>
-             <MiniDashboard 
-              totalIncome={0}
-              totalExpenses={0}
-              currentBalance={0}
-            />
-        </div>
-     )
+    return (
+      <div className="space-y-6 text-center">
+        <p>Please log in to view your dashboard.</p>
+        <MiniDashboard
+          totalIncome={0}
+          totalExpenses={0}
+          currentBalance={0}
+        />
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-      <MiniDashboard 
+      <MiniDashboard
         totalIncome={dashboardData.totalIncome}
         totalExpenses={dashboardData.totalExpenses}
         currentBalance={dashboardData.currentBalance}
       />
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
-        <div className="lg:col-span-2 order-2 lg:order-1 space-y-4"> {/* Form takes full width effectively */}
-           <TransactionForm />
-           <Button variant="outline" className="w-full border-dashed border-primary/50 text-primary hover:bg-primary/10 hover:text-primary" disabled>
+        <div className="lg:col-span-2 order-2 lg:order-1 space-y-4"> {/* Form takes more space */}
+          <TransactionForm />
+          <Button variant="outline" className="w-full border-dashed border-primary/50 text-primary hover:bg-primary/10 hover:text-primary" disabled>
             <ScanLine className="mr-2 h-5 w-5" />
             Scan Receipt with AI (Future)
           </Button>
         </div>
         <div className="lg:col-span-3 order-1 lg:order-2 hidden lg:block"> {/* Chart for desktop */}
-           <ExpenseDistributionChart 
-              data={expenseChartData} 
-              config={expenseChartConfig}
-              title={`Financial Overview for ${format(currentDate, "MMMM yyyy")}`}
-            />
+          <ExpenseDistributionChart
+            data={expenseChartData}
+            config={expenseChartConfig}
+            title={`Financial Overview for ${format(currentDate, "MMMM yyyy")}`}
+          />
         </div>
       </div>
     </div>
@@ -235,5 +232,3 @@ export default function DashboardPage() {
     </QueryClientProvider>
   );
 }
-
-    

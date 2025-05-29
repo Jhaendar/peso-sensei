@@ -217,7 +217,7 @@ function TransactionFormContent() {
   };
 
   const handleModalConfirm = (data: ExtractReceiptDataOutput) => {
-    form.setValue("title", data.title || ""); // Populate title
+    form.setValue("title", data.title || ""); 
     form.setValue("amount", data.amount > 0 ? data.amount : 0);
     if (data.date) {
       try {
@@ -290,30 +290,6 @@ function TransactionFormContent() {
                 )}
               />
 
-              {selectedType === 'expense' && (
-                <FormItem className="grid grid-cols-[6rem_1fr] items-center gap-x-3">
-                  <FormLabel className="text-sm text-muted-foreground">Receipt</FormLabel>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal border-primary/50 text-primary hover:bg-primary/10 hover:text-primary"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isAIScanning || !user || isLoadingCategories}
-                  >
-                    <Scan className="mr-2 h-4 w-4" />
-                    Scan Receipt with AI
-                  </Button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    accept="image/*"
-                    disabled={isAIScanning}
-                  />
-                </FormItem>
-              )}
-
               <FormField
                 control={form.control}
                 name="date"
@@ -346,7 +322,7 @@ function TransactionFormContent() {
                             selected={field.value}
                             onSelect={field.onChange}
                             disabled={(date) =>
-                              date > new Date() || date < new Date("1900-01-01")
+                               date < new Date("1900-01-01")
                             }
                             initialFocus
                           />
@@ -357,7 +333,7 @@ function TransactionFormContent() {
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="title"
@@ -373,6 +349,31 @@ function TransactionFormContent() {
                   </FormItem>
                 )}
               />
+
+              {selectedType === 'expense' && (
+                <FormItem className="grid grid-cols-[6rem_1fr] items-center gap-x-3">
+                  <FormLabel className="text-sm text-muted-foreground">Receipt</FormLabel>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal border-primary/50 text-primary hover:bg-primary/10 hover:text-primary"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isAIScanning || !user || isLoadingCategories}
+                  >
+                    <Scan className="mr-2 h-4 w-4" />
+                    Scan Receipt with AI
+                  </Button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    accept="image/*"
+                    disabled={isAIScanning}
+                  />
+                </FormItem>
+              )}
+
 
               <FormField
                 control={form.control}
@@ -420,7 +421,7 @@ function TransactionFormContent() {
                           ))}
                         </SelectContent>
                       </Select>
-                      {categoriesError && <FormMessage>{(categoriesError.message || 'An unknown error occurred while loading categories.')}</FormMessage>}
+                      {categoriesError && <FormMessage>{`Error: ${(categoriesError.message || 'An unknown error occurred while loading categories.').substring(0, 60)}...`}</FormMessage>}
                       {!categoriesError && (!availableCategories || availableCategories.length === 0) && !isLoadingCategories && (
                         <FormMessage>No {selectedType} categories found. Please add some in 'Manage Categories'.</FormMessage>
                       )}
@@ -471,3 +472,4 @@ function TransactionFormContent() {
 export function TransactionForm() {
   return <TransactionFormContent />;
 }
+

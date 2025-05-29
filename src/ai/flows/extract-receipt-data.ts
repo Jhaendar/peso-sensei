@@ -22,6 +22,7 @@ const ExtractReceiptDataInputSchema = z.object({
 export type ExtractReceiptDataInput = z.infer<typeof ExtractReceiptDataInputSchema>;
 
 const ExtractReceiptDataOutputSchema = z.object({
+  title: z.string().describe('A concise title summarizing the receipt (e.g., "Grocery Purchase", "Restaurant Bill").'),
   amount: z.number().describe('The total amount on the receipt.'),
   date: z.string().describe('The date on the receipt (YYYY-MM-DD).'),
   category: z.string().describe('The suggested category of the expense on the receipt, chosen from the provided list or "Other".'),
@@ -40,6 +41,7 @@ const prompt = ai.definePrompt({
 
 You will be given a photo of a receipt and a list of available expense categories.
 Extract the following information:
+- A concise title summarizing the receipt (e.g., "Grocery Purchase", "Restaurant Bill", "Online Subscription").
 - The total amount on the receipt.
 - The date on the receipt (in YYYY-MM-DD format).
 - The most appropriate category for the expense from the provided list.

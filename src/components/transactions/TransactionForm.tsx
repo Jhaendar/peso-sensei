@@ -72,7 +72,7 @@ function TransactionFormContent() {
   const [isScanModalOpen, setIsScanModalOpen] = React.useState(false);
   const [scannedImageSrc, setScannedImageSrc] = React.useState<string | null>(null);
   const [extractedReceiptData, setExtractedReceiptData] = React.useState<ExtractReceiptDataOutput | null>(null);
-  const [isAIScanning, setIsAIScanning] = React.useState(false); // Renamed from isScanning to be specific to AI
+  const [isAIScanning, setIsAIScanning] = React.useState(false);
   const [aiScanError, setAiScanError] = React.useState<string | null>(null);
 
 
@@ -94,7 +94,7 @@ function TransactionFormContent() {
     queryKey: ['categories', user?.uid, selectedType],
     queryFn: () => fetchUserCategories(user?.uid, selectedType),
     enabled: !!user && !!db && !!selectedType,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   React.useEffect(() => {
@@ -126,7 +126,7 @@ function TransactionFormContent() {
     try {
       const transactionData = {
         ...values,
-        date: format(values.date, "yyyy-MM-dd"),
+        date: format(values.date, "yyyy-MM-dd"), // Store date as string
         userId: user.uid,
         createdAt: serverTimestamp(),
       };
@@ -145,6 +145,7 @@ function TransactionFormContent() {
         description: "",
       });
 
+      // Invalidate queries to refresh dashboard and transaction list
       const currentMonthKey = format(new Date(), "yyyy-MM");
       queryClientHook.invalidateQueries({ queryKey: ['monthlyTransactions', user?.uid, currentMonthKey] });
       queryClientHook.invalidateQueries({ queryKey: ['allUserTransactions', user?.uid] });
@@ -188,8 +189,8 @@ function TransactionFormContent() {
     reader.onload = async () => {
       const photoDataUri = reader.result as string;
       setScannedImageSrc(photoDataUri);
-      setIsScanModalOpen(true); // Open the modal immediately with the image
-      setIsAIScanning(true); // Indicate AI processing starts
+      setIsScanModalOpen(true);
+      setIsAIScanning(true);
 
       try {
         const categoryNames = availableCategories.map(cat => cat.name);
@@ -201,10 +202,8 @@ function TransactionFormContent() {
       } catch (error: any) {
         console.error("Error scanning receipt: ", error);
         setAiScanError(error.message || "Could not process the receipt image.");
-        // Toast for AI error can be shown by the modal, or here if modal isn't designed for it yet.
-        // For now, the modal will display this error.
       } finally {
-        setIsAIScanning(false); // AI processing finished (success or fail)
+        setIsAIScanning(false);
         if (fileInputRef.current) {
           fileInputRef.current.value = ""; // Reset file input
         }
@@ -212,12 +211,13 @@ function TransactionFormContent() {
     };
     reader.onerror = () => {
       toast({ variant: "destructive", title: "File Error", description: "Could not read the selected file." });
-      setIsAIScanning(false); // Ensure loading state is reset
+      setIsAIScanning(false); 
       setScannedImageSrc(null);
     };
   };
 
   const handleModalConfirm = (data: ExtractReceiptDataOutput) => {
+    form.setValue("title", data.title || ""); // Populate title
     form.setValue("amount", data.amount > 0 ? data.amount : 0);
     if (data.date) {
       try {
@@ -247,7 +247,7 @@ function TransactionFormContent() {
             }
         }
     }
-    setIsScanModalOpen(false); // Close modal after confirmation
+    setIsScanModalOpen(false);
   };
 
 
@@ -424,7 +424,7 @@ function TransactionFormContent() {
                       {!categoriesError && (!availableCategories || availableCategories.length === 0) && !isLoadingCategories && (
                         <FormMessage>No {selectedType} categories found. Please add some in 'Manage Categories'.</FormMessage>
                       )}
-                       <FormMessage /> {/* For react-hook-form's own validation errors, was duplicated */}
+                       <FormMessage />
                     </div>
                   </FormItem>
                 )}

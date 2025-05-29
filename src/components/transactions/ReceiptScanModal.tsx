@@ -84,6 +84,10 @@ export function ReceiptScanModal({
         {extractedData && !isLoading && !error && (
           <div className="space-y-3 my-4 text-sm">
             <div>
+              <span className="font-semibold text-muted-foreground">Suggested Title:</span>
+              <span className="ml-2 text-foreground">{extractedData.title}</span>
+            </div>
+            <div>
               <span className="font-semibold text-muted-foreground">Amount:</span>
               <span className="ml-2 text-foreground">PHP {extractedData.amount.toFixed(2)}</span>
             </div>

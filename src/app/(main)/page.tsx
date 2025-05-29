@@ -4,8 +4,6 @@
 import React from 'react';
 import { MiniDashboard } from "@/components/dashboard/MiniDashboard";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
-import { Button } from "@/components/ui/button";
-import { ScanLine } from "lucide-react";
 import { useAuth } from '@/components/providers/auth-provider';
 import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
@@ -63,10 +61,9 @@ const chartColorsHSL = [
   "hsl(var(--chart-2))",
   "hsl(var(--chart-3))",
   "hsl(var(--chart-4))",
-  "hsl(var(--primary))",
-  "hsl(var(--accent))",
+  // Note: chart-5 is now reserved for Balance
 ];
-const balanceSliceColor = "hsl(var(--chart-5))"; // Green color for balance
+const balanceSliceColor = "hsl(var(--chart-5))"; // Specific green color for balance
 
 function DashboardPageContent() {
   const { user } = useAuth();
@@ -148,6 +145,7 @@ function DashboardPageContent() {
     return { expenseChartData: finalChartData, expenseChartConfig: dynamicChartConfig };
   }, [transactions, categories, dashboardData.totalIncome, dashboardData.currentBalance, isLoadingCategories, isLoadingTransactions]);
 
+
   if ((isLoadingTransactions || isLoadingCategories) && user && !(transactionsError || categoriesError)) {
     return (
       <div className="space-y-6">
@@ -160,7 +158,6 @@ function DashboardPageContent() {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
           <div className="lg:col-span-2 order-2 lg:order-1 space-y-4">
             <Skeleton className="h-[500px] w-full" /> {/* Approx height of TransactionForm Card */}
-            <Skeleton className="h-[40px] w-full" /> {/* Approx height of Scan Receipt Button */}
           </div>
           <div className="lg:col-span-3 order-1 lg:order-2 hidden lg:block"> {/* Chart for desktop */}
             <Skeleton className="h-[350px] w-full" /> {/* Approx height of Chart Card */}
@@ -206,10 +203,7 @@ function DashboardPageContent() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
         <div className="lg:col-span-2 order-2 lg:order-1 space-y-4"> {/* Form takes more space */}
           <TransactionForm />
-          <Button variant="outline" className="w-full border-dashed border-primary/50 text-primary hover:bg-primary/10 hover:text-primary" disabled>
-            <ScanLine className="mr-2 h-5 w-5" />
-            Scan Receipt with AI (Future)
-          </Button>
+          {/* The old Scan Receipt button that was here is now removed */}
         </div>
         <div className="lg:col-span-3 order-1 lg:order-2 hidden lg:block"> {/* Chart for desktop */}
           <ExpenseDistributionChart
@@ -232,3 +226,4 @@ export default function DashboardPage() {
     </QueryClientProvider>
   );
 }
+

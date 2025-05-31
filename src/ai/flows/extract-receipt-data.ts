@@ -35,6 +35,7 @@ export async function extractReceiptData(input: ExtractReceiptDataInput): Promis
 
 const prompt = ai.definePrompt({
   name: 'extractReceiptDataPrompt',
+  model: 'googleai/gemini-2.5-flash', // Specify Gemini 2.5 Flash for this prompt
   input: {schema: ExtractReceiptDataInputSchema},
   output: {schema: ExtractReceiptDataOutputSchema},
   prompt: `You are an expert at extracting data from receipts and categorizing expenses.

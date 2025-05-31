@@ -1,9 +1,9 @@
 
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef, Table } from "@tanstack/react-table";
 import type { TransactionRow } from "@/lib/types";
-import { ArrowUpDown, MoreHorizontal, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -28,6 +28,13 @@ const SortIndicator = ({ column }: { column: any }) => {
   }
   return <ArrowUpDown className="ml-2 h-4 w-4" />;
 };
+
+// Define a type for the table's meta object if not already globally defined
+interface TableMeta {
+  handleOpenDeleteDialog?: (transactionId: string) => void;
+  deleteTransactionMutation?: { isPending: boolean };
+  // Add other meta properties here if needed, e.g., for editing
+}
 
 export const columns: ColumnDef<TransactionRow>[] = [
   {
@@ -70,11 +77,10 @@ export const columns: ColumnDef<TransactionRow>[] = [
     cell: ({ row }) => {
       const date = row.getValue("date") as string;
       try {
-        // Assuming date is "yyyy-MM-dd" string
-        const parsedDate = parseISO(date + "T00:00:00"); // Treat as local date
+        const parsedDate = parseISO(date + "T00:00:00"); 
         return <div className="text-left">{format(parsedDate, "MMM dd, yyyy")}</div>;
       } catch (e) {
-        return <div className="text-left">{date}</div>; // Fallback if parsing fails
+        return <div className="text-left">{date}</div>; 
       }
     },
     filterFn: (row, columnId, filterValue: DateRange | undefined) => {
@@ -82,7 +88,6 @@ export const columns: ColumnDef<TransactionRow>[] = [
         return true;
       }
       const rowDateStr = row.getValue(columnId) as string;
-      // Parse rowDateStr: "yyyy-MM-dd"
       const [year, month, day] = rowDateStr.split('-').map(Number);
       const rowDate = startOfDay(new Date(Date.UTC(year, month - 1, day)));
 
@@ -194,8 +199,10 @@ export const columns: ColumnDef<TransactionRow>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => {
-      const transaction = row.original;
+    cell: ({ row, table }: { row: any; table: Table<TransactionRow> }) => {
+      const transaction = row.original as TransactionRow;
+      const meta = table.options.meta as TableMeta | undefined;
+
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -207,13 +214,31 @@ export const columns: ColumnDef<TransactionRow>[] = [
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(transaction.id || "")}
+              onClick={() => {
+                if (transaction.id) {
+                  navigator.clipboard.writeText(transaction.id);
+                }
+              }}
             >
               Copy transaction ID
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem disabled>Edit transaction</DropdownMenuItem>
-            <DropdownMenuItem disabled className="text-destructive">Delete transaction</DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                if (transaction.id) {
+                  meta?.handleOpenDeleteDialog?.(transaction.id);
+                } else {
+                  console.error("Cannot delete: Transaction ID is undefined.");
+                  // You could add a toast here for user feedback if needed
+                }
+              }}
+              className="text-destructive hover:bg-destructive/10 focus:bg-destructive/10 focus:text-destructive"
+              // The 'disabled' prop is removed from here to ensure the item is always clickable.
+              // The confirmation dialog's button will handle the loading/disabled state.
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Delete transaction
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );

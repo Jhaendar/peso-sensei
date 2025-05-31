@@ -40,7 +40,6 @@ import { ReceiptScanModal } from "./ReceiptScanModal";
 
 const formSchema = z.object({
   type: z.enum(["income", "expense"], { required_error: "Please select a transaction type." }),
-  // date: z.date({ required_error: "Please select a date." }),
   date: z.union([z.date(), z.string()]).transform((val) => typeof val === 'string' ? parseISO(val) : val), // Allow string for initialData
   title: z.string().min(1, { message: "Please enter a title." }),
   amount: z.coerce.number().positive({ message: "Amount must be positive." }),
@@ -48,16 +47,14 @@ const formSchema = z.object({
   description: z.string().optional(),
 });
 
-// type TransactionFormData = z.infer<typeof formSchema>; // Already in types.ts
-
 interface TransactionFormProps {
   onSubmit: (data: TransactionFormData) => void;
-  categories: Category[]; // Pass categories as prop for editing consistency
+  categories: Category[]; 
   userId: string;
-  initialData?: TransactionRow | null; // For editing
-  isSubmitting?: boolean; // For loading state
-  onCancel?: () => void; // To close the dialog
-  isEditMode?: boolean; // To change submit button text and other UI elements
+  initialData?: TransactionRow | null; 
+  isSubmitting?: boolean; 
+  onCancel?: () => void; 
+  isEditMode?: boolean; 
 }
 
 const fetchUserCategories = async (userId: string | undefined, type: 'income' | 'expense'): Promise<Category[]> => {
@@ -85,7 +82,7 @@ export function TransactionForm({
   isEditMode = false 
 }: TransactionFormProps) {
   const { toast } = useToast();
-  const { user } = useAuth(); // User from auth to ensure consistency
+  const { user } = useAuth(); 
   const queryClientHook = useQueryClient();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
@@ -99,7 +96,7 @@ export function TransactionForm({
     resolver: zodResolver(formSchema),
     defaultValues: initialData ? {
         ...initialData,
-        date: initialData.date ? parseISO(initialData.date) : new Date(), // Ensure date is a Date object
+        date: initialData.date ? parseISO(initialData.date) : new Date(), 
         amount: initialData.amount || 0,
         description: initialData.description || "",
       } : {
@@ -115,7 +112,7 @@ export function TransactionForm({
   const selectedType = form.watch("type");
 
   const { data: availableCategories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>({
-    queryKey: ['categories', user?.uid, selectedType], // Use user.uid from auth
+    queryKey: ['categories', user?.uid, selectedType], 
     queryFn: () => fetchUserCategories(user?.uid, selectedType),
     enabled: !!user && !!db && !!selectedType,
     staleTime: 5 * 60 * 1000, 
@@ -137,15 +134,12 @@ export function TransactionForm({
   React.useEffect(() => {
     const currentCategoryId = form.getValues("categoryId");
     if (currentCategoryId && availableCategories && !availableCategories.find(cat => cat.id === currentCategoryId)) {
-      // If initialData had a category that doesn't match the new type, reset it.
-      // This can happen if the type is changed during an edit.
       if (initialData && initialData.type !== selectedType) {
         form.setValue("categoryId", "");
       }
     }
   }, [availableCategories, form, selectedType, initialData]);
 
-  // Handler for form submission (create or update)
   async function onSubmit(values: TransactionFormData) {
     if (!user) {
       toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in." });
@@ -155,11 +149,7 @@ export function TransactionForm({
       toast({ variant: "destructive", title: "Database Error", description: "Could not connect to the database." });
       return;
     }
-
-    // Use the passed onSubmitProp for actual data submission
     onSubmitProp(values);
-
-    // Reset form only if not in edit mode (or handle reset after successful update via parent)
     if (!isEditMode) {
         form.reset({
             type: "expense",
@@ -169,7 +159,6 @@ export function TransactionForm({
             date: new Date(),
             description: "",
         });
-        // Invalidate queries for add mode, edit mode invalidation is handled in parent page
         const currentMonthKey = format(new Date(), "yyyy-MM");
         queryClientHook.invalidateQueries({ queryKey: ['monthlyTransactions', user?.uid, currentMonthKey] });
         queryClientHook.invalidateQueries({ queryKey: ['allUserTransactions', user?.uid] });
@@ -252,10 +241,25 @@ export function TransactionForm({
 
   return (
     <>
-      {/* Conditionally render Card if not in a dialog (e.g., when used on a dedicated add page) */}
-      {/* For this task, it's always in a dialog, so no Card wrapper here, it's in the page.tsx */}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
+          {selectedType === 'expense' && !isEditMode && ( 
+            <FormItem className="grid grid-cols-[6rem_1fr] items-center gap-x-3">
+              <FormLabel className="text-sm text-muted-foreground">Receipt</FormLabel>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start text-left font-normal border-primary/50 text-primary hover:bg-primary/10 hover:text-primary"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isAIScanning || !user || isLoadingCategories}
+              >
+                <Scan className="mr-2 h-4 w-4" />
+                Scan Receipt with AI
+              </Button>
+              <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" disabled={isAIScanning} />
+            </FormItem>
+          )}
+
           <FormField
             control={form.control}
             name="type"
@@ -337,23 +341,6 @@ export function TransactionForm({
               </FormItem>
             )}
           />
-
-          {selectedType === 'expense' && !isEditMode && ( // Disable AI scan in edit mode for now
-            <FormItem className="grid grid-cols-[6rem_1fr] items-center gap-x-3">
-              <FormLabel className="text-sm text-muted-foreground">Receipt</FormLabel>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full justify-start text-left font-normal border-primary/50 text-primary hover:bg-primary/10 hover:text-primary"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isAIScanning || !user || isLoadingCategories}
-              >
-                <Scan className="mr-2 h-4 w-4" />
-                Scan Receipt with AI
-              </Button>
-              <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" disabled={isAIScanning} />
-            </FormItem>
-          )}
 
           <FormField
             control={form.control}

@@ -14,6 +14,7 @@ import {
   type SortingState,
   type ColumnFiltersState,
   type VisibilityState,
+  type TableMeta,
 } from "@tanstack/react-table";
 import type { TransactionRow, Category } from "@/lib/types";
 import { columns } from "./TransactionTableColumns";
@@ -43,14 +44,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DateRangePicker } from "@/components/ui/date-range-picker"; 
 import { Label } from "@/components/ui/label";
 
-interface TransactionTableContentProps {
+// Define a more specific TableMeta for this table
+interface TransactionTableMeta extends TableMeta {
+  handleOpenDeleteDialog?: (transactionId: string) => void;
+  deleteTransactionMutation?: { isPending: boolean };
+  // Add other meta properties specific to transactions table if needed
+}
+
+interface TransactionTableProps {
   data: TransactionRow[];
   categories: Category[];
   isLoading?: boolean;
   error?: Error | null;
+  meta?: TransactionTableMeta; // Accept the meta prop here
 }
 
-function TransactionTableContent({ data, categories, isLoading, error }: TransactionTableContentProps) {
+function TransactionTableContent({ data, categories, isLoading, error, meta }: TransactionTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
@@ -61,9 +70,10 @@ function TransactionTableContent({ data, categories, isLoading, error }: Transac
   const [selectedCategories, setSelectedCategories] = React.useState<string[]>([]);
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
 
-  const table = useReactTable({
+  const table = useReactTable<TransactionRow>({
     data: data || [],
     columns,
+    meta, // Pass meta to the table instance
     state: {
       sorting,
       columnFilters,
@@ -71,7 +81,7 @@ function TransactionTableContent({ data, categories, isLoading, error }: Transac
       rowSelection,
     },
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters, // react-table manages this state
+    onColumnFiltersChange: setColumnFilters, 
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
@@ -80,7 +90,6 @@ function TransactionTableContent({ data, categories, isLoading, error }: Transac
     getPaginationRowModel: getPaginationRowModel(),
   });
 
-  // Apply filters to the table when local filter states change
   React.useEffect(() => {
     table.getColumn("title")?.setFilterValue(titleFilter || undefined);
   }, [titleFilter, table]);
@@ -92,7 +101,6 @@ function TransactionTableContent({ data, categories, isLoading, error }: Transac
   React.useEffect(() => {
     table.getColumn("date")?.setFilterValue(dateRange);
   }, [dateRange, table]);
-
 
   const handleCategoryToggle = (categoryName: string) => {
     setSelectedCategories(prev => {
@@ -117,7 +125,6 @@ function TransactionTableContent({ data, categories, isLoading, error }: Transac
     setTitleFilter("");
     setSelectedCategories([]);
     setDateRange(undefined);
-    // The useEffects above will propagate these empty values to table.setFilterValue
   };
 
   if (error) {
@@ -134,8 +141,8 @@ function TransactionTableContent({ data, categories, isLoading, error }: Transac
     return (
       <div className="space-y-4">
         <div className="flex items-center py-4">
-          <Skeleton className="h-10 w-24" /> {/* Filter Button Skeleton */}
-          <Skeleton className="ml-auto h-10 w-[120px]" /> {/* Columns Button Skeleton */}
+          <Skeleton className="h-10 w-24" /> 
+          <Skeleton className="ml-auto h-10 w-[120px]" />
         </div>
         <div className="rounded-md border">
           <Table>
@@ -348,8 +355,8 @@ function TransactionTableContent({ data, categories, isLoading, error }: Transac
   );
 }
 
-export function TransactionTable({ data, categories, isLoading, error }: TransactionTableContentProps) {
+export function TransactionTable({ data, categories, isLoading, error, meta }: TransactionTableProps) {
   return (
-      <TransactionTableContent data={data} categories={categories || []} isLoading={isLoading} error={error} />
+      <TransactionTableContent data={data} categories={categories || []} isLoading={isLoading} error={error} meta={meta} />
   );
 }

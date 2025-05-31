@@ -3,7 +3,7 @@
 
 import type { ColumnDef, Table } from "@tanstack/react-table";
 import type { TransactionRow } from "@/lib/types";
-import { ArrowUpDown, MoreHorizontal, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, ArrowUp, ArrowDown, Trash2, Edit } from "lucide-react"; // Added Edit icon
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -29,11 +29,12 @@ const SortIndicator = ({ column }: { column: any }) => {
   return <ArrowUpDown className="ml-2 h-4 w-4" />;
 };
 
-// Define a type for the table's meta object if not already globally defined
+// Define a type for the table's meta object
 interface TableMeta {
   handleOpenDeleteDialog?: (transactionId: string) => void;
+  handleOpenEditDialog?: (transaction: TransactionRow) => void; // Added for editing
   deleteTransactionMutation?: { isPending: boolean };
-  // Add other meta properties here if needed, e.g., for editing
+  // Add other meta properties here if needed
 }
 
 export const columns: ColumnDef<TransactionRow>[] = [
@@ -223,19 +224,26 @@ export const columns: ColumnDef<TransactionRow>[] = [
               Copy transaction ID
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem disabled>Edit transaction</DropdownMenuItem>
+            <DropdownMenuItem // Edit transaction item
+              onClick={() => {
+                if (transaction) { // Pass the whole transaction object
+                  meta?.handleOpenEditDialog?.(transaction);
+                } else {
+                  console.error("Cannot edit: Transaction data is undefined.");
+                }
+              }}
+            >
+              <Edit className="mr-2 h-4 w-4" /> Edit transaction 
+            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
                 if (transaction.id) {
                   meta?.handleOpenDeleteDialog?.(transaction.id);
                 } else {
                   console.error("Cannot delete: Transaction ID is undefined.");
-                  // You could add a toast here for user feedback if needed
                 }
               }}
               className="text-destructive hover:bg-destructive/10 focus:bg-destructive/10 focus:text-destructive"
-              // The 'disabled' prop is removed from here to ensure the item is always clickable.
-              // The confirmation dialog's button will handle the loading/disabled state.
             >
               <Trash2 className="mr-2 h-4 w-4" /> Delete transaction
             </DropdownMenuItem>

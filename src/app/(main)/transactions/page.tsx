@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -10,11 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ListFilter, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useQuery, useMutation, useQueryClient as useTanstackQueryClient, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { collection, query, where, getDocs, Timestamp, doc, deleteDoc, updateDoc, serverTimestamp } from "firebase/firestore"; // Added updateDoc and serverTimestamp
+import { collection, query, where, getDocs, Timestamp, doc, deleteDoc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore"; // Added addDoc, updateDoc and serverTimestamp
 import { db } from "@/lib/firebase";
 import type { Transaction, Category, TransactionRow, TransactionFormData } from "@/lib/types"; // Added TransactionFormData
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast'; 
+import { useToast } from "@/hooks/use-toast"; // Corrected import path back to original
 
 const fetchUserCategories = async (userId: string | undefined): Promise<Category[]> => {
   if (!userId || !db) return [];
@@ -67,6 +66,19 @@ const updateTransaction = async (transactionId: string, data: TransactionFormDat
   });
 };
 
+// Function to create a new transaction in Firestore
+const createTransaction = async (data: TransactionFormData, userId: string): Promise<void> => {
+  if (!db) throw new Error("Firestore database is not initialized.");
+  if (!userId) throw new Error("User ID is required to create a transaction.");
+  const transactionsCol = collection(db, "transactions");
+  await addDoc(transactionsCol, {
+    ...data,
+    amount: Number(data.amount), // Ensure amount is a number
+    userId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+};
 
 const StatCard: React.FC<{ title: string; value: number; icon: React.ReactNode; currency?: string; isLoading?: boolean }> = ({ title, value, icon, currency = "PHP", isLoading }) => {
   if (isLoading) {
@@ -100,7 +112,7 @@ const StatCard: React.FC<{ title: string; value: number; icon: React.ReactNode; 
 
 function TransactionsPageContent() {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const { toast } = useToast(); // Correct usage after import correction
   const tanstackQueryClient = useTanstackQueryClient();
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -109,6 +121,9 @@ function TransactionsPageContent() {
   // State for edit dialog
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [editingTransaction, setEditingTransaction] = React.useState<TransactionRow | null>(null);
+  
+  // State for create dialog
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
 
   const { data: categories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>({
     queryKey: ['allUserCategories', user?.uid],
@@ -122,6 +137,39 @@ function TransactionsPageContent() {
     enabled: !!user && !!db,
   });
 
+  const updateTransactionMutation = useMutation<
+    void, 
+    Error, 
+    { transactionId: string; data: TransactionFormData; userId: string }
+  >({
+    mutationFn: ({ transactionId, data, userId }) => updateTransaction(transactionId, data, userId),
+    onSuccess: () => {
+      toast({ title: "Success", description: "Transaction updated successfully." });
+      tanstackQueryClient.invalidateQueries({ queryKey: ['allUserTransactions', user?.uid] });
+      setIsEditDialogOpen(false);
+      setEditingTransaction(null);
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: `Failed to update transaction: ${error.message}`, variant: "destructive" });
+    },
+  });
+
+  const createTransactionMutation = useMutation<
+    void,
+    Error,
+    { data: TransactionFormData; userId: string }
+  >({
+    mutationFn: ({ data, userId }) => createTransaction(data, userId),
+    onSuccess: () => {
+      toast({ title: "Success", description: "Transaction created successfully." });
+      tanstackQueryClient.invalidateQueries({ queryKey: ['allUserTransactions', user?.uid] });
+      setIsCreateDialogOpen(false); // Close dialog on success
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: `Failed to create transaction: ${error.message}`, variant: "destructive" });
+    },
+  });
+  
   const deleteTransactionMutation = useMutation<void, Error, string>({
     mutationFn: deleteTransaction,
     onSuccess: () => {
@@ -137,25 +185,6 @@ function TransactionsPageContent() {
     },
   });
   
-  // Mutation for updating a transaction
-  const updateTransactionMutation = useMutation<
-    void, 
-    Error, 
-    { transactionId: string; data: TransactionFormData; userId: string }
-  >({
-    mutationFn: ({ transactionId, data, userId }) => updateTransaction(transactionId, data, userId),
-    onSuccess: () => {
-      toast({ title: "Success", description: "Transaction updated successfully." });
-      tanstackQueryClient.invalidateQueries({ queryKey: ['allUserTransactions', user?.uid] });
-      setIsEditDialogOpen(false);
-      setEditingTransaction(null);
-    },
-    onError: (error) => {
-      toast({ title: "Error", description: `Failed to update transaction: ${error.message}`, variant: "destructive" });
-      // Keep dialog open for user to retry or correct
-    },
-  });
-
   const handleOpenDeleteDialog = (transactionId: string) => {
     setTransactionToDeleteId(transactionId);
     setIsDeleteDialogOpen(true);
@@ -183,12 +212,25 @@ function TransactionsPageContent() {
     setEditingTransaction(null);
   };
 
-  const handleUpdateTransaction = (data: TransactionFormData) => {
+  const handleUpdateTransaction = async (data: TransactionFormData) => {
     if (!editingTransaction || !editingTransaction.id || !user?.uid) {
       toast({ title: "Error", description: "Cannot update transaction. Missing data.", variant: "destructive" });
       return;
     }
-    updateTransactionMutation.mutate({ transactionId: editingTransaction.id, data, userId: user.uid });
+    await updateTransactionMutation.mutateAsync({
+      transactionId: editingTransaction.id,
+      data,
+      userId: user.uid
+    });
+  };
+
+  // Handler for create transaction
+  const handleCreateTransaction = async (data: TransactionFormData) => {
+    if (!user?.uid) {
+      toast({ title: "Error", description: "Cannot create transaction. User not found.", variant: "destructive" });
+      return;
+    }
+    await createTransactionMutation.mutateAsync({ data, userId: user.uid });
   };
 
   const { totalIncome, totalExpenses, overallBalance } = React.useMemo(() => {
@@ -303,25 +345,46 @@ function TransactionsPageContent() {
 
       {/* Edit Transaction Dialog */} 
       {editingTransaction && (
-        <Dialog open={isEditDialogOpen} onOpenChange={(open) => !open && handleCloseEditDialog()}>
-          <DialogContent className="sm:max-w-md">
+        <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setEditingTransaction(null);
+          }
+        }}>
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit Transaction</DialogTitle>
-              <DialogDescription>
-                Update the details of your transaction.
-              </DialogDescription>
             </DialogHeader>
-            <TransactionForm 
-                onSubmit={handleUpdateTransaction} 
-                categories={categories || []} 
-                userId={user?.uid || ""} 
-                initialData={editingTransaction} // Pass the transaction data to prefill the form
-                isSubmitting={updateTransactionMutation.isPending} // Pass loading state
-                onCancel={handleCloseEditDialog} // Add a way to close/cancel from the form
+            <TransactionForm
+              onSubmit={handleUpdateTransaction}
+              categories={categories || []}
+              userId={user?.uid || ""}
+              initialData={editingTransaction}
+              isSubmitting={updateTransactionMutation.isPending}
+              onCancel={() => {
+                setIsEditDialogOpen(false);
+                setEditingTransaction(null);
+              }}
             />
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Create Transaction Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Transaction</DialogTitle>
+          </DialogHeader>
+          <TransactionForm
+            onSubmit={handleCreateTransaction}
+            categories={categories || []}
+            userId={user?.uid || ""}
+            isSubmitting={createTransactionMutation.isPending}
+            onCancel={() => setIsCreateDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

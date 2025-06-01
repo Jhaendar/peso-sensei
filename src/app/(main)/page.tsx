@@ -1,19 +1,19 @@
-
 "use client";
 
 import React from 'react';
 import { MiniDashboard } from "@/components/dashboard/MiniDashboard";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { useAuth } from '@/components/providers/auth-provider';
-import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
+import { useQuery, useMutation, useQueryClient as useTanstackQueryClient, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { collection, query, where, getDocs, Timestamp, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { Transaction, Category, ChartDataPoint } from "@/lib/types";
+import type { Transaction, Category, ChartDataPoint, TransactionFormData } from "@/lib/types";
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExpenseDistributionChart } from "@/components/charts/ExpenseDistributionChart";
 import type { ChartConfig } from "@/components/ui/chart";
+import { useToast } from "@/hooks/use-toast";
 
 const fetchUserCategories = async (userId: string | undefined): Promise<Category[]> => {
   if (!userId || !db) return [];
@@ -65,10 +65,26 @@ const chartColorsHSL = [
 ];
 const balanceSliceColor = "hsl(var(--chart-5))"; // Specific green color for balance
 
+// Function to create a new transaction in Firestore (similar to the one in transactions/page.tsx)
+const createTransaction = async (data: TransactionFormData, userId: string): Promise<void> => {
+  if (!db) throw new Error("Firestore database is not initialized.");
+  if (!userId) throw new Error("User ID is required to create a transaction.");
+  const transactionsCol = collection(db, "transactions");
+  await addDoc(transactionsCol, {
+    ...data,
+    amount: Number(data.amount), // Ensure amount is a number
+    userId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+};
+
 function DashboardPageContent() {
   const { user } = useAuth();
   const currentDate = new Date();
   const currentMonthYearKey = format(currentDate, "yyyy-MM");
+  const { toast } = useToast();
+  const tanstackQueryClient = useTanstackQueryClient();
 
   const { data: categories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>({
     queryKey: ['categories', user?.uid],
@@ -81,6 +97,30 @@ function DashboardPageContent() {
     queryFn: () => fetchMonthlyTransactions(user!.uid, currentDate),
     enabled: !!user && !!db,
   });
+
+  const createTransactionMutation = useMutation<
+    void,
+    Error,
+    { data: TransactionFormData; userId: string }
+  >({
+    mutationFn: ({ data, userId }) => createTransaction(data, userId),
+    onSuccess: () => {
+      toast({ title: "Success", description: "Transaction created successfully." });
+      tanstackQueryClient.invalidateQueries({ queryKey: ['monthlyTransactions', user?.uid, currentMonthYearKey] });
+      // The form itself should reset on successful submission
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: `Failed to create transaction: ${error.message}`, variant: "destructive" });
+    },
+  });
+
+  const handleCreateTransaction = async (data: TransactionFormData) => {
+    if (!user?.uid) {
+      toast({ title: "Error", description: "Cannot create transaction. User not found.", variant: "destructive" });
+      return;
+    }
+    await createTransactionMutation.mutateAsync({ data, userId: user.uid });
+  };
 
   const dashboardData = React.useMemo(() => {
     if (!transactions) return { totalIncome: 0, totalExpenses: 0, currentBalance: 0 };
@@ -202,7 +242,14 @@ function DashboardPageContent() {
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
         <div className="lg:col-span-2 order-2 lg:order-1 space-y-4"> {/* Form takes more space */}
-          <TransactionForm />
+          <TransactionForm
+            onSubmit={handleCreateTransaction}
+            categories={categories || []}
+            userId={user?.uid || ""}
+            isSubmitting={createTransactionMutation.isPending}
+            // No initialData, so it's in "create" mode
+            // No onCancel needed here as it's not in a dialog and form has own reset
+          />
           {/* The old Scan Receipt button that was here is now removed */}
         </div>
         <div className="lg:col-span-3 order-1 lg:order-2 hidden lg:block"> {/* Chart for desktop */}

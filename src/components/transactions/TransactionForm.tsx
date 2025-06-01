@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from "react";
@@ -37,6 +36,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { extractReceiptData, type ExtractReceiptDataInput, type ExtractReceiptDataOutput } from "@/ai/flows/extract-receipt-data";
 import { ReceiptScanModal } from "./ReceiptScanModal";
+import { queryKeys } from "@/lib/utils";
 
 const formSchema = z.object({
   type: z.enum(["income", "expense"], { required_error: "Please select a transaction type." }),
@@ -72,7 +72,6 @@ const fetchUserCategories = async (userId: string | undefined, type: 'income' | 
     } as Category;
   }).sort((a, b) => a.name.localeCompare(b.name));
 };
-
 
 export function TransactionForm({ 
   onSubmit: onSubmitProp, 
@@ -111,8 +110,9 @@ export function TransactionForm({
 
   const selectedType = form.watch("type");
 
+  // Use standardized query key
   const { data: availableCategories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>({
-    queryKey: ['categories', user?.uid, selectedType], 
+    queryKey: queryKeys.categories.byType(user?.uid || '', selectedType),
     queryFn: () => fetchUserCategories(user?.uid, selectedType),
     enabled: !!user && !!db && !!selectedType,
     staleTime: 5 * 60 * 1000, 
@@ -149,8 +149,8 @@ export function TransactionForm({
       toast({ variant: "destructive", title: "Database Error", description: "Could not connect to the database." });
       return;
     }
-    onSubmitProp(values);
-    if (!isEditMode) {
+    onSubmitProp(values); // Call the parent's submit handler
+    if (!isEditMode) { // Only reset form for new transactions, not for edits
         form.reset({
             type: "expense",
             title: "",
@@ -159,9 +159,8 @@ export function TransactionForm({
             date: new Date(),
             description: "",
         });
-        const currentMonthKey = format(new Date(), "yyyy-MM");
-        queryClientHook.invalidateQueries({ queryKey: ['monthlyTransactions', user?.uid, currentMonthKey] });
-        queryClientHook.invalidateQueries({ queryKey: ['allUserTransactions', user?.uid] });
+        // Query invalidation has been removed from here
+        // It should be handled in the parent component's mutation onSuccess
     }
   }
 

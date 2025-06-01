@@ -3,18 +3,19 @@
 import React from 'react';
 import { TransactionTable } from '@/components/transactions/TransactionTable';
 import { DeleteTransactionDialog } from '@/components/transactions/DeleteTransactionDialog';
-import { TransactionForm } from '@/components/transactions/TransactionForm'; // Import TransactionForm
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'; // Import Dialog components
+import { TransactionForm } from '@/components/transactions/TransactionForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'; // Removed DialogDescription
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ListFilter, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
-import { useQuery, useMutation, useQueryClient as useTanstackQueryClient, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { collection, query, where, getDocs, Timestamp, doc, deleteDoc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore"; // Added addDoc, updateDoc and serverTimestamp
+import { useQuery, useMutation, useQueryClient as useTanstackQueryClient } from '@tanstack/react-query';
+import { collection, query, where, getDocs, Timestamp, doc, deleteDoc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { Transaction, Category, TransactionRow, TransactionFormData } from "@/lib/types"; // Added TransactionFormData
-import { format } from 'date-fns'; // Ensure format is imported
+import type { Transaction, Category, TransactionRow, TransactionFormData } from "@/lib/types";
+import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from "@/hooks/use-toast"; // Corrected import path back to original
+import { useToast } from "@/hooks/use-toast";
+import { queryKeys, invalidateTransactionQueries } from "@/lib/utils";
 
 const fetchUserCategories = async (userId: string | undefined): Promise<Category[]> => {
   if (!userId || !db) return [];
@@ -38,18 +39,19 @@ const fetchAllUserTransactions = async (userId: string | undefined): Promise<Tra
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => {
     const data = doc.data();
-    
+
     const rawDate = data.date;
-    let jsDate: Date;
+    let dateString: string;
     if (rawDate instanceof Timestamp) {
-      jsDate = rawDate.toDate();
+      dateString = format(rawDate.toDate(), "yyyy-MM-dd");
     } else if (typeof rawDate === 'string') {
-      jsDate = new Date(rawDate); // Assumes ISO string or parsable date string
+      // Ensure it's in the correct format and handle it as a local date
+      dateString = rawDate;
     } else if (rawDate instanceof Date) {
-      jsDate = rawDate;
+      dateString = format(rawDate, "yyyy-MM-dd");
     } else {
       console.warn("Unexpected type for date field:", rawDate, "for doc ID:", doc.id);
-      jsDate = new Date(); // Fallback to current date
+      dateString = format(new Date(), "yyyy-MM-dd"); // Fallback to current date
     }
 
     const rawCreatedAt = data.createdAt;
@@ -66,7 +68,7 @@ const fetchAllUserTransactions = async (userId: string | undefined): Promise<Tra
       type: data.type,
       description: data.description,
       userId: data.userId,
-      date: format(jsDate, "yyyy-MM-dd"), // Format to "yyyy-MM-dd" string
+      date: dateString, // Keep as string to avoid timezone issues
       createdAt: jsCreatedAt,
       updatedAt: jsUpdatedAt,
     } as Transaction;
@@ -85,11 +87,16 @@ const updateTransaction = async (transactionId: string, data: TransactionFormDat
   if (!db) throw new Error("Firestore database is not initialized.");
   if (!transactionId) throw new Error("Transaction ID is required for update.");
   const transactionRef = doc(db, "transactions", transactionId);
+  
+  // Ensure date is properly formatted as string for consistent Firestore queries
+  const dateString = data.date instanceof Date ? format(data.date, "yyyy-MM-dd") : data.date;
+  
   await updateDoc(transactionRef, {
-      ...data,
-      amount: Number(data.amount), // Ensure amount is a number
-      updatedAt: serverTimestamp(),
-      userId, // ensure userId is part of the update if needed for rules, though often not directly updated
+    ...data,
+    date: dateString, // Store as string for consistent querying
+    amount: Number(data.amount), // Ensure amount is a number
+    updatedAt: serverTimestamp(),
+    userId, // ensure userId is part of the update if needed for rules, though often not directly updated
   });
 };
 
@@ -98,8 +105,13 @@ const createTransaction = async (data: TransactionFormData, userId: string): Pro
   if (!db) throw new Error("Firestore database is not initialized.");
   if (!userId) throw new Error("User ID is required to create a transaction.");
   const transactionsCol = collection(db, "transactions");
+  
+  // Ensure date is properly formatted as string for consistent Firestore queries
+  const dateString = data.date instanceof Date ? format(data.date, "yyyy-MM-dd") : data.date;
+  
   await addDoc(transactionsCol, {
     ...data,
+    date: dateString, // Store as string for consistent querying
     amount: Number(data.amount), // Ensure amount is a number
     userId,
     createdAt: serverTimestamp(),
@@ -139,7 +151,7 @@ const StatCard: React.FC<{ title: string; value: number; icon: React.ReactNode; 
 
 function TransactionsPageContent() {
   const { user } = useAuth();
-  const { toast } = useToast(); // Correct usage after import correction
+  const { toast } = useToast();
   const tanstackQueryClient = useTanstackQueryClient();
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -148,31 +160,37 @@ function TransactionsPageContent() {
   // State for edit dialog
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [editingTransaction, setEditingTransaction] = React.useState<TransactionRow | null>(null);
-  
+
   // State for create dialog
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
 
+  // Use standardized query keys
   const { data: categories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>({
-    queryKey: ['allUserCategories', user?.uid],
+    queryKey: queryKeys.categories.all(user?.uid || ''),
     queryFn: () => fetchUserCategories(user?.uid),
     enabled: !!user && !!db,
   });
 
   const { data: transactions, isLoading: isLoadingTransactions, error: transactionsError } = useQuery<Transaction[], Error>({
-    queryKey: ['allUserTransactions', user?.uid],
+    queryKey: queryKeys.transactions.all(user?.uid || ''),
     queryFn: () => fetchAllUserTransactions(user?.uid),
     enabled: !!user && !!db,
   });
 
   const updateTransactionMutation = useMutation<
-    void, 
-    Error, 
+    void,
+    Error,
     { transactionId: string; data: TransactionFormData; userId: string }
   >({
     mutationFn: ({ transactionId, data, userId }) => updateTransaction(transactionId, data, userId),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       toast({ title: "Success", description: "Transaction updated successfully." });
-      tanstackQueryClient.invalidateQueries({ queryKey: ['allUserTransactions', user?.uid] });
+      const transactionDate = variables.data.date instanceof Date ? variables.data.date : new Date(variables.data.date);
+      const transactionMonthKey = format(transactionDate, "yyyy-MM");
+
+      // Use standardized cache invalidation
+      invalidateTransactionQueries(tanstackQueryClient, user?.uid || '', transactionMonthKey);
+
       setIsEditDialogOpen(false);
       setEditingTransaction(null);
     },
@@ -187,21 +205,31 @@ function TransactionsPageContent() {
     { data: TransactionFormData; userId: string }
   >({
     mutationFn: ({ data, userId }) => createTransaction(data, userId),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       toast({ title: "Success", description: "Transaction created successfully." });
-      tanstackQueryClient.invalidateQueries({ queryKey: ['allUserTransactions', user?.uid] });
-      setIsCreateDialogOpen(false); // Close dialog on success
+      const transactionDate = variables.data.date instanceof Date ? variables.data.date : new Date(variables.data.date);
+      const transactionMonthKey = format(transactionDate, "yyyy-MM");
+
+      // Use standardized cache invalidation
+      invalidateTransactionQueries(tanstackQueryClient, user?.uid || '', transactionMonthKey);
+
+      setIsCreateDialogOpen(false);
     },
     onError: (error) => {
       toast({ title: "Error", description: `Failed to create transaction: ${error.message}`, variant: "destructive" });
     },
   });
-  
-  const deleteTransactionMutation = useMutation<void, Error, string>({
-    mutationFn: deleteTransaction,
-    onSuccess: () => {
+
+  const deleteTransactionMutation = useMutation<void, Error, { transactionId: string, transactionDate: Date | string }>({
+    mutationFn: ({ transactionId }) => deleteTransaction(transactionId),
+    onSuccess: (_data, variables) => {
       toast({ title: "Success", description: "Transaction deleted successfully." });
-      tanstackQueryClient.invalidateQueries({ queryKey: ['allUserTransactions', user?.uid] });
+      const transactionDate = variables.transactionDate instanceof Date ? variables.transactionDate : new Date(variables.transactionDate);
+      const transactionMonthKey = format(transactionDate, "yyyy-MM");
+
+      // Use standardized cache invalidation
+      invalidateTransactionQueries(tanstackQueryClient, user?.uid || '', transactionMonthKey);
+
       setIsDeleteDialogOpen(false);
       setTransactionToDeleteId(null);
     },
@@ -211,7 +239,7 @@ function TransactionsPageContent() {
       setTransactionToDeleteId(null);
     },
   });
-  
+
   const handleOpenDeleteDialog = (transactionId: string) => {
     setTransactionToDeleteId(transactionId);
     setIsDeleteDialogOpen(true);
@@ -224,7 +252,17 @@ function TransactionsPageContent() {
 
   const handleConfirmDelete = () => {
     if (transactionToDeleteId) {
-      deleteTransactionMutation.mutate(transactionToDeleteId);
+      // Find the transaction to get its date for more precise cache invalidation
+      const transactionToDelete = transactions?.find(t => t.id === transactionToDeleteId);
+      if (transactionToDelete && transactionToDelete.date) {
+        deleteTransactionMutation.mutate({ transactionId: transactionToDeleteId, transactionDate: transactionToDelete.date });
+      } else {
+        // Fallback if date not found, though less ideal (or handle error)
+        // For simplicity, we'll proceed but log a warning or rely on broader invalidation if date is missing
+        console.warn("Could not find transaction date for precise invalidation on delete.");
+        // Perform a broader invalidation if specific month cannot be determined
+        deleteTransactionMutation.mutate({ transactionId: transactionToDeleteId, transactionDate: new Date() });
+      }
     }
   };
 
@@ -280,7 +318,7 @@ function TransactionsPageContent() {
     return transactions.map(t => ({
       ...t,
       categoryName: categoriesMap.get(t.categoryId) || "Uncategorized",
-      createdAt: t.createdAt, 
+      createdAt: t.createdAt,
     })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions, categories]);
 
@@ -295,7 +333,7 @@ function TransactionsPageContent() {
     handleOpenDeleteDialog,
     handleOpenEditDialog, // Pass edit handler
     deleteTransactionMutation: {
-        isPending: deleteTransactionMutation.isPending,
+      isPending: deleteTransactionMutation.isPending,
     },
   };
 
@@ -335,9 +373,9 @@ function TransactionsPageContent() {
 
         {queryError && (
           <Card>
-              <CardContent className="p-4">
-                  <p className="text-destructive">Error loading transaction data: {queryError.message}</p>
-              </CardContent>
+            <CardContent className="p-4">
+              <p className="text-destructive">Error loading transaction data: {queryError.message}</p>
+            </CardContent>
           </Card>
         )}
 
@@ -357,7 +395,7 @@ function TransactionsPageContent() {
               categories={categories || []}
               isLoading={isLoading}
               error={queryError}
-              meta={tableMeta} 
+              meta={tableMeta}
             />
           </CardContent>
         </Card>
@@ -370,7 +408,7 @@ function TransactionsPageContent() {
         isDeleting={deleteTransactionMutation.isPending}
       />
 
-      {/* Edit Transaction Dialog */} 
+      {/* Edit Transaction Dialog */}
       {editingTransaction && (
         <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
           setIsEditDialogOpen(open);
@@ -417,12 +455,6 @@ function TransactionsPageContent() {
   );
 }
 
-const queryClient = new QueryClient();
-
 export default function TransactionsPage() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TransactionsPageContent />
-    </QueryClientProvider>
-  );
+  return <TransactionsPageContent />;
 }

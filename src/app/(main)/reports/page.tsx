@@ -1,10 +1,9 @@
-
 "use client";
 
 import React from 'react';
 import { ExpenseDistributionChart } from "@/components/charts/ExpenseDistributionChart";
 import { useAuth } from '@/components/providers/auth-provider';
-import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Transaction, Category, ChartDataPoint } from "@/lib/types";
@@ -12,6 +11,7 @@ import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ChartConfig } from "@/components/ui/chart";
+import { queryKeys } from "@/lib/utils";
 
 const fetchUserCategories = async (userId: string | undefined): Promise<Category[]> => {
   if (!userId || !db) return [];
@@ -45,10 +45,26 @@ const fetchMonthlyTransactions = async (userId: string | undefined, currentDate:
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => {
     const data = doc.data();
+    
+    const rawDate = data.date;
+    let dateString: string;
+    if (rawDate instanceof Timestamp) {
+      dateString = format(rawDate.toDate(), "yyyy-MM-dd");
+    } else if (typeof rawDate === 'string') {
+      // Keep as string to avoid timezone issues
+      dateString = rawDate;
+    } else if (rawDate instanceof Date) {
+      dateString = format(rawDate, "yyyy-MM-dd");
+    } else {
+      console.warn("Unexpected type for date field:", rawDate, "for doc ID:", doc.id);
+      dateString = format(new Date(), "yyyy-MM-dd"); // Fallback to current date
+    }
+    
     const createdAtRaw = data.createdAt;
     return {
       id: doc.id,
       ...data,
+      date: dateString, // Keep as string to avoid timezone issues
       createdAt: createdAtRaw instanceof Timestamp ? createdAtRaw.toDate() : new Date(createdAtRaw)
     } as Transaction;
   });
@@ -69,14 +85,15 @@ function ReportsPageContent() {
   const currentDate = new Date();
   const currentMonthYearKey = format(currentDate, "yyyy-MM");
 
+  // Use standardized query keys
   const { data: categories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>({
-    queryKey: ['categories', user?.uid],
+    queryKey: queryKeys.categories.all(user?.uid || ''),
     queryFn: () => fetchUserCategories(user!.uid),
     enabled: !!user && !!db,
   });
 
   const { data: transactions, isLoading: isLoadingTransactions, error: transactionsError } = useQuery<Transaction[], Error>({
-    queryKey: ['monthlyTransactions', user?.uid, currentMonthYearKey],
+    queryKey: queryKeys.transactions.monthly(user?.uid || '', currentMonthYearKey),
     queryFn: () => fetchMonthlyTransactions(user!.uid, currentDate),
     enabled: !!user && !!db,
   });
@@ -185,12 +202,6 @@ function ReportsPageContent() {
   );
 }
 
-const queryClient = new QueryClient();
-
 export default function ReportsPage() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <ReportsPageContent />
-    </QueryClientProvider>
-  );
+  return <ReportsPageContent />;
 }

@@ -4,7 +4,7 @@ import React from 'react';
 import { MiniDashboard } from "@/components/dashboard/MiniDashboard";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { useAuth } from '@/components/providers/auth-provider';
-import { useQuery, useMutation, useQueryClient as useTanstackQueryClient, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient as useTanstackQueryClient } from '@tanstack/react-query';
 import { collection, query, where, getDocs, Timestamp, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Transaction, Category, ChartDataPoint, TransactionFormData } from "@/lib/types";
@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ExpenseDistributionChart } from "@/components/charts/ExpenseDistributionChart";
 import type { ChartConfig } from "@/components/ui/chart";
 import { useToast } from "@/hooks/use-toast";
+import { queryKeys, invalidateTransactionQueries } from "@/lib/utils";
 
 const fetchUserCategories = async (userId: string | undefined): Promise<Category[]> => {
   if (!userId || !db) return [];
@@ -47,10 +48,26 @@ const fetchMonthlyTransactions = async (userId: string | undefined, currentDate:
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => {
     const data = doc.data();
+    
+    const rawDate = data.date;
+    let dateString: string;
+    if (rawDate instanceof Timestamp) {
+      dateString = format(rawDate.toDate(), "yyyy-MM-dd");
+    } else if (typeof rawDate === 'string') {
+      // Keep as string to avoid timezone issues
+      dateString = rawDate;
+    } else if (rawDate instanceof Date) {
+      dateString = format(rawDate, "yyyy-MM-dd");
+    } else {
+      console.warn("Unexpected type for date field:", rawDate, "for doc ID:", doc.id);
+      dateString = format(new Date(), "yyyy-MM-dd"); // Fallback to current date
+    }
+    
     const createdAtRaw = data.createdAt;
     return {
       id: doc.id,
       ...data,
+      date: dateString, // Keep as string to avoid timezone issues
       createdAt: createdAtRaw instanceof Timestamp ? createdAtRaw.toDate() : new Date(createdAtRaw)
     } as Transaction;
   });
@@ -70,8 +87,13 @@ const createTransaction = async (data: TransactionFormData, userId: string): Pro
   if (!db) throw new Error("Firestore database is not initialized.");
   if (!userId) throw new Error("User ID is required to create a transaction.");
   const transactionsCol = collection(db, "transactions");
+  
+  // Ensure date is properly formatted as string for consistent Firestore queries
+  const dateString = data.date instanceof Date ? format(data.date, "yyyy-MM-dd") : data.date;
+  
   await addDoc(transactionsCol, {
     ...data,
+    date: dateString, // Store as string for consistent querying
     amount: Number(data.amount), // Ensure amount is a number
     userId,
     createdAt: serverTimestamp(),
@@ -86,14 +108,15 @@ function DashboardPageContent() {
   const { toast } = useToast();
   const tanstackQueryClient = useTanstackQueryClient();
 
+  // Use standardized query keys
   const { data: categories, isLoading: isLoadingCategories, error: categoriesError } = useQuery<Category[], Error>({
-    queryKey: ['categories', user?.uid],
+    queryKey: queryKeys.categories.all(user?.uid || ''),
     queryFn: () => fetchUserCategories(user?.uid),
     enabled: !!user && !!db,
   });
 
   const { data: transactions, isLoading: isLoadingTransactions, error: transactionsError } = useQuery<Transaction[], Error>({
-    queryKey: ['monthlyTransactions', user?.uid, currentMonthYearKey],
+    queryKey: queryKeys.transactions.monthly(user?.uid || '', currentMonthYearKey),
     queryFn: () => fetchMonthlyTransactions(user!.uid, currentDate),
     enabled: !!user && !!db,
   });
@@ -104,10 +127,13 @@ function DashboardPageContent() {
     { data: TransactionFormData; userId: string }
   >({
     mutationFn: ({ data, userId }) => createTransaction(data, userId),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       toast({ title: "Success", description: "Transaction created successfully." });
-      tanstackQueryClient.invalidateQueries({ queryKey: ['monthlyTransactions', user?.uid, currentMonthYearKey] });
-      // The form itself should reset on successful submission
+      const transactionDate = variables.data.date instanceof Date ? variables.data.date : new Date(variables.data.date);
+      const transactionMonthKey = format(transactionDate, "yyyy-MM");
+      
+      // Use standardized cache invalidation
+      invalidateTransactionQueries(tanstackQueryClient, user?.uid || '', transactionMonthKey);
     },
     onError: (error) => {
       toast({ title: "Error", description: `Failed to create transaction: ${error.message}`, variant: "destructive" });
@@ -264,13 +290,7 @@ function DashboardPageContent() {
   );
 }
 
-const queryClient = new QueryClient();
-
 export default function DashboardPage() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <DashboardPageContent />
-    </QueryClientProvider>
-  );
+  return <DashboardPageContent />;
 }
 

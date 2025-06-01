@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -30,8 +29,9 @@ import {
 import { useAuth } from '@/components/providers/auth-provider';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, query, where, getDocs, doc, Timestamp, serverTimestamp } from 'firebase/firestore'; // Added Timestamp
-import { useQuery, useMutation, QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
+import { queryKeys, invalidateTransactionQueries } from '@/lib/utils';
 
 const fetchUserCategories = async (userId: string | undefined): Promise<Category[]> => {
   if (!userId || !db) return [];
@@ -49,16 +49,17 @@ const fetchUserCategories = async (userId: string | undefined): Promise<Category
 };
 
 function CategoryManagerContent() {
-  const { toast } = useToast();
   const { user } = useAuth();
-  const queryClientHook = useQueryClient(); 
+  const { toast } = useToast();
+  const queryClientHook = useQueryClient(); // Use the shared QueryClient from context
 
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryType, setNewCategoryType] = useState<'income' | 'expense'>("expense");
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
+  // Use standardized query key
   const { data: categories, isLoading, error } = useQuery<Category[], Error>({
-    queryKey: ['categories', user?.uid],
+    queryKey: queryKeys.categories.all(user?.uid || ''),
     queryFn: () => fetchUserCategories(user?.uid),
     enabled: !!user && !!db,
   });
@@ -76,7 +77,8 @@ function CategoryManagerContent() {
       toast({ title: "Category Added", description: `${newCategoryName} (${newCategoryType}) has been added.` });
       setNewCategoryName("");
       setNewCategoryType("expense"); 
-      queryClientHook.invalidateQueries({ queryKey: ['categories', user?.uid] }); 
+      // Use standardized cache invalidation for categories
+      invalidateTransactionQueries(queryClientHook, user?.uid || '');
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", title: "Error Adding Category", description: err.message });
@@ -94,7 +96,8 @@ function CategoryManagerContent() {
       setEditingCategory(null);
       setNewCategoryName("");
       setNewCategoryType("expense");
-      queryClientHook.invalidateQueries({ queryKey: ['categories', user?.uid] });
+      // Use standardized cache invalidation for categories
+      invalidateTransactionQueries(queryClientHook, user?.uid || '');
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", title: "Error Updating Category", description: err.message });
@@ -109,14 +112,14 @@ function CategoryManagerContent() {
       const q = query(transactionsCol, where("userId", "==", user.uid), where("categoryId", "==", categoryId));
       const snapshot = await getDocs(q);
       if (!snapshot.empty) {
-        throw new Error("Cannot delete category. It is currently assigned to one or more transactions.");
+        throw new Error("Cannot delete category that is being used in transactions.");
       }
-      const categoryRef = doc(db, "categories", categoryId);
-      return deleteDoc(categoryRef);
+      return deleteDoc(doc(db, "categories", categoryId));
     },
     onSuccess: () => {
-      toast({ title: "Category Deleted", description: "The category has been removed." });
-      queryClientHook.invalidateQueries({ queryKey: ['categories', user?.uid] });
+      toast({ title: "Category Deleted", description: "Category has been deleted." });
+      // Use standardized cache invalidation for categories
+      invalidateTransactionQueries(queryClientHook, user?.uid || '');
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", title: "Error Deleting Category", description: err.message });
@@ -310,12 +313,6 @@ function CategoryManagerContent() {
   );
 }
 
-const queryClientInstance = new QueryClient();
-
 export function CategoryManager() {
-  return (
-    <QueryClientProvider client={queryClientInstance}>
-      <CategoryManagerContent />
-    </QueryClientProvider>
-  );
+  return <CategoryManagerContent />;
 }

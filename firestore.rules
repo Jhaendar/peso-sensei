@@ -10,12 +10,14 @@ service cloud.firestore {
 
     // Allow users to manage their own transactions
     match /transactions/{transactionId} {
-      allow read, create, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
 
     // Allow users to manage their own categories
     match /categories/{categoryId} {
-      allow read, create, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
   }
 }

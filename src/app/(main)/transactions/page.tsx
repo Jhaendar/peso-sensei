@@ -12,6 +12,7 @@ import { useQuery, useMutation, useQueryClient as useTanstackQueryClient, QueryC
 import { collection, query, where, getDocs, Timestamp, doc, deleteDoc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore"; // Added addDoc, updateDoc and serverTimestamp
 import { db } from "@/lib/firebase";
 import type { Transaction, Category, TransactionRow, TransactionFormData } from "@/lib/types"; // Added TransactionFormData
+import { format } from 'date-fns'; // Ensure format is imported
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from "@/hooks/use-toast"; // Corrected import path back to original
 
@@ -37,11 +38,37 @@ const fetchAllUserTransactions = async (userId: string | undefined): Promise<Tra
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => {
     const data = doc.data();
+    
+    const rawDate = data.date;
+    let jsDate: Date;
+    if (rawDate instanceof Timestamp) {
+      jsDate = rawDate.toDate();
+    } else if (typeof rawDate === 'string') {
+      jsDate = new Date(rawDate); // Assumes ISO string or parsable date string
+    } else if (rawDate instanceof Date) {
+      jsDate = rawDate;
+    } else {
+      console.warn("Unexpected type for date field:", rawDate, "for doc ID:", doc.id);
+      jsDate = new Date(); // Fallback to current date
+    }
+
+    const rawCreatedAt = data.createdAt;
+    const jsCreatedAt = rawCreatedAt instanceof Timestamp ? rawCreatedAt.toDate() : new Date(rawCreatedAt as any);
+
+    const rawUpdatedAt = data.updatedAt;
+    const jsUpdatedAt = rawUpdatedAt ? (rawUpdatedAt instanceof Timestamp ? rawUpdatedAt.toDate() : new Date(rawUpdatedAt as any)) : undefined;
+
     return {
       id: doc.id,
-      ...data,
-      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
-      date: data.date, 
+      title: data.title,
+      amount: data.amount,
+      categoryId: data.categoryId,
+      type: data.type,
+      description: data.description,
+      userId: data.userId,
+      date: format(jsDate, "yyyy-MM-dd"), // Format to "yyyy-MM-dd" string
+      createdAt: jsCreatedAt,
+      updatedAt: jsUpdatedAt,
     } as Transaction;
   });
 };

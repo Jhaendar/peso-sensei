@@ -392,6 +392,7 @@ function TransactionsPageContent() {
                 setIsEditDialogOpen(false);
                 setEditingTransaction(null);
               }}
+              isEditMode={true} // Add this line
             />
           </DialogContent>
         </Dialog>

@@ -71,12 +71,12 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run dev', // Using the dev script from package.json
-  //   url: 'http://localhost:9002',
-  //   reuseExistingServer: !process.env.CI,
-  //   timeout: 120 * 1000, // Increase timeout for server start
-  //   stdout: 'pipe', // Pipe stdout to Playwright's logs
-  //   stderr: 'pipe', // Pipe stderr to Playwright's logs
-  // },
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:9002',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+    stdout: 'pipe',
+    stderr: 'pipe',
+  },
 });

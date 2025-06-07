@@ -44,9 +44,15 @@ try {
     // Or if initializeApp itself failed and returned undefined (also unlikely, it usually throws).
     console.error("CRITICAL: Firebase App instance (app) is undefined after attempting initialization.");
   }
-} catch (error: any) {
-  console.error("CRITICAL: Firebase initialization failed with an error:", error.message);
-  console.error("Full error stack:", error.stack);
+} catch (error: unknown) {
+  let errorMessage = "Unknown error during Firebase initialization.";
+  let errorStack = "Stack trace not available.";
+  if (error instanceof Error) {
+    errorMessage = error.message;
+    errorStack = error.stack || "Stack trace not available.";
+  }
+  console.error("CRITICAL: Firebase initialization failed with an error:", errorMessage);
+  console.error("Full error stack:", errorStack);
   console.error("Firebase config used:", JSON.stringify({
     apiKey: firebaseConfig.apiKey ? '********' : 'MISSING_OR_EMPTY', // Don't log full API key
     authDomain: firebaseConfig.authDomain,

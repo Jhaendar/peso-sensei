@@ -43,6 +43,14 @@ export function SignupForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!auth) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "Firebase authentication is not initialized.",
+      });
+      return;
+    }
     try {
       await createUserWithEmailAndPassword(auth, values.email, values.password);
       toast({
@@ -50,11 +58,15 @@ export function SignupForm() {
         description: "Your account has been created.",
       });
       router.push("/"); // Redirect to dashboard or home page after signup
-    } catch (error: any) {
+    } catch (error: unknown) {
+      let errorMessage = "An unexpected error occurred.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
       toast({
         variant: "destructive",
         title: "Signup Failed",
-        description: error.message || "An unexpected error occurred.",
+        description: errorMessage,
       });
     }
   }

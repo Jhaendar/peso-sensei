@@ -27,14 +27,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Category, TransactionFormData, TransactionRow } from "@/lib/types"; // Added TransactionRow and TransactionFormData
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Landmark, ShoppingCart, Coins, Loader2, Scan, X } from "lucide-react"; // Added X icon
+import { CalendarIcon, Coins, Loader2, Scan, X } from "lucide-react"; // Added X icon, Removed Landmark, ShoppingCart
 import { format, parse, parseISO } from "date-fns"; // Added parseISO
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { addDoc, collection, serverTimestamp, query, where, getDocs, Timestamp } from "firebase/firestore";
+// import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"; // Removed Card components
+import { collection, query, where, getDocs, Timestamp } from "firebase/firestore"; // Removed addDoc, serverTimestamp
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/components/providers/auth-provider";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { extractReceiptData, type ExtractReceiptDataInput, type ExtractReceiptDataOutput } from "@/ai/flows/extract-receipt-data";
+import { useQuery } from "@tanstack/react-query"; // Removed useQueryClient
+import { extractReceiptData, type ExtractReceiptDataOutput } from "@/ai/flows/extract-receipt-data"; // Removed ExtractReceiptDataInput
 import { ReceiptScanModal } from "./ReceiptScanModal";
 import { queryKeys } from "@/lib/utils";
 
@@ -68,7 +68,7 @@ const fetchUserCategories = async (userId: string | undefined, type: 'income' | 
     return {
       id: doc.id,
       ...data,
-      createdAt: createdAtRaw instanceof Timestamp ? createdAtRaw.toDate() : new Date(createdAtRaw as any)
+      createdAt: createdAtRaw instanceof Timestamp ? createdAtRaw.toDate() : new Date(createdAtRaw)
     } as Category;
   }).sort((a, b) => a.name.localeCompare(b.name));
 };
@@ -82,7 +82,7 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const { toast } = useToast();
   const { user } = useAuth(); 
-  const queryClientHook = useQueryClient();
+  // const queryClientHook = useQueryClient(); // Removed unused variable
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
   const [isScanModalOpen, setIsScanModalOpen] = React.useState(false);
@@ -189,8 +189,12 @@ export function TransactionForm({
         const categoryNames = availableCategories.map(cat => cat.name);
         const result = await extractReceiptData({ photoDataUri, availableCategoryNames: categoryNames });
         setExtractedReceiptData(result);
-      } catch (error: any) {
-        setAiScanError(error.message || "Could not process the receipt image.");
+      } catch (error: unknown) {
+        let errorMessage = "Could not process the receipt image.";
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        }
+        setAiScanError(errorMessage);
       } finally {
         setIsAIScanning(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -214,7 +218,7 @@ export function TransactionForm({
         } else {
           toast({ variant: "destructive", title: "AI Error", description: `AI returned invalid date: ${data.date}. Set manually.` });
         }
-      } catch (e) {
+      } catch { // _e removed
         toast({ variant: "destructive", title: "AI Error", description: `Could not parse date from AI: ${data.date}. Set manually.` });
       }
     }
@@ -234,8 +238,8 @@ export function TransactionForm({
     setIsScanModalOpen(false);
   };
 
-  const cardTitle = isEditMode ? "Edit Transaction" : "Add New Transaction";
-  const cardDescription = isEditMode ? "Update the details of your transaction." : "Record your income or expenses.";
+  // const cardTitle = isEditMode ? "Edit Transaction" : "Add New Transaction"; // Unused variable
+  // const cardDescription = isEditMode ? "Update the details of your transaction." : "Record your income or expenses."; // Unused variable
   const submitButtonText = isEditMode ? (isSubmitting ? "Saving..." : "Save Changes") : (isSubmitting ? "Adding..." : "Add Transaction");
 
   return (
@@ -390,7 +394,7 @@ export function TransactionForm({
                   </Select>
                   {categoriesError && <FormMessage>{`Error: ${(categoriesError.message || 'Error loading categories.').substring(0,60)}...`}</FormMessage>}
                   {!categoriesError && (!availableCategories || availableCategories.length === 0) && !isLoadingCategories && (
-                    <FormMessage>No {selectedType} categories. Add in 'Manage Categories'.</FormMessage>
+                    <FormMessage>No {selectedType} categories. Add in &apos;Manage Categories&apos;.</FormMessage>
                   )}
                   <FormMessage />
                 </div>

@@ -1,5 +1,5 @@
 
-import type { Timestamp } from 'firebase/firestore';
+// import type { Timestamp } from 'firebase/firestore'; // Removed as it's unused
 import * as z from "zod"; // Import Zod
 
 export interface Transaction {

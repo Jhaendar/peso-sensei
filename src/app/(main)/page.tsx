@@ -189,7 +189,7 @@ function DashboardPageContent() {
       chartDataPointsMap[categoryName].value += t.amount;
     });
 
-    let finalChartData = Object.values(chartDataPointsMap).sort((a, b) => b.value - a.value);
+    const finalChartData = Object.values(chartDataPointsMap).sort((a, b) => b.value - a.value);
 
     if (dashboardData.currentBalance > 0 && dashboardData.totalIncome > 0) {
       const balanceCategoryName = "Balance";
@@ -209,7 +209,7 @@ function DashboardPageContent() {
     }
 
     return { expenseChartData: finalChartData, expenseChartConfig: dynamicChartConfig };
-  }, [transactions, categories, dashboardData.totalIncome, dashboardData.currentBalance, isLoadingCategories, isLoadingTransactions]);
+  }, [transactions, categories, dashboardData.totalIncome, dashboardData.currentBalance, dashboardData.totalExpenses, isLoadingCategories, isLoadingTransactions]);
 
 
   if ((isLoadingTransactions || isLoadingCategories) && user && !(transactionsError || categoriesError)) {

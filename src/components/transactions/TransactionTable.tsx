@@ -45,7 +45,7 @@ import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Label } from "@/components/ui/label";
 
 // Define a more specific TableMeta for this table
-interface TransactionTableMeta extends TableMeta {
+interface TransactionTableMeta<TData extends TransactionRow> extends TableMeta<TData> {
   handleOpenDeleteDialog?: (transactionId: string) => void;
   deleteTransactionMutation?: { isPending: boolean };
   // Add other meta properties specific to transactions table if needed
@@ -56,7 +56,7 @@ interface TransactionTableProps {
   categories: Category[];
   isLoading?: boolean;
   error?: Error | null;
-  meta?: TransactionTableMeta; // Accept the meta prop here
+  meta?: TransactionTableMeta<TransactionRow>; // Accept the meta prop here
 }
 
 function TransactionTableContent({ data, categories, isLoading, error, meta }: TransactionTableProps) {
@@ -73,7 +73,7 @@ function TransactionTableContent({ data, categories, isLoading, error, meta }: T
   const table = useReactTable<TransactionRow>({
     data: data || [],
     columns,
-    meta, // Pass meta to the table instance
+    meta: meta as TableMeta<TransactionRow>, // Pass meta to the table instance with type assertion
     state: {
       sorting,
       columnFilters,
@@ -148,16 +148,16 @@ function TransactionTableContent({ data, categories, isLoading, error, meta }: T
           <Table>
             <TableHeader>
               <TableRow>
-                {columns.map((columnDef) => (
-                   <TableHead key={columnDef.id || `skeleton-head-${(columnDef as any).accessorKey || Math.random()}`}><Skeleton className="h-5 w-20" /></TableHead>
+                {columns.map((columnDef: ColumnDef<TransactionRow>, index: number) => (
+                   <TableHead key={columnDef.id || `skeleton-head-${index}`}><Skeleton className="h-5 w-20" /></TableHead>
                 ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {Array(5).fill(null).map((_, rowIndex) => (
                 <TableRow key={rowIndex}>
-                  {columns.map((columnDef) => (
-                    <TableCell key={columnDef.id || `skeleton-cell-${rowIndex}-${(columnDef as any).accessorKey || Math.random()}`}><Skeleton className="h-5 w-full" /></TableCell>
+                  {columns.map((columnDef: ColumnDef<TransactionRow>, index: number) => (
+                    <TableCell key={columnDef.id || `skeleton-cell-${rowIndex}-${index}`}><Skeleton className="h-5 w-full" /></TableCell>
                   ))}
                 </TableRow>
               ))}

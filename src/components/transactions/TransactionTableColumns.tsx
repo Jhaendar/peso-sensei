@@ -17,8 +17,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO, startOfDay, addDays } from "date-fns";
 import type { DateRange } from "react-day-picker";
+import type { Column, Row } from "@tanstack/react-table"; // Import Column and Row types
 
-const SortIndicator = ({ column }: { column: any }) => {
+const SortIndicator = ({ column }: { column: Column<TransactionRow, unknown> }) => {
   const sortDirection = column.getIsSorted();
   if (sortDirection === "asc") {
     return <ArrowUp className="ml-2 h-4 w-4" />;
@@ -80,7 +81,7 @@ export const columns: ColumnDef<TransactionRow>[] = [
       try {
         const parsedDate = parseISO(date + "T00:00:00"); 
         return <div className="text-left">{format(parsedDate, "MMM dd, yyyy")}</div>;
-      } catch (e) {
+      } catch { // _e removed
         return <div className="text-left">{date}</div>; 
       }
     },
@@ -200,8 +201,8 @@ export const columns: ColumnDef<TransactionRow>[] = [
   },
   {
     id: "actions",
-    cell: ({ row, table }: { row: any; table: Table<TransactionRow> }) => {
-      const transaction = row.original as TransactionRow;
+    cell: ({ row, table }: { row: Row<TransactionRow>; table: Table<TransactionRow> }) => {
+      const transaction = row.original; // No need for 'as TransactionRow' due to proper Row typing
       const meta = table.options.meta as TableMeta | undefined;
 
       return (

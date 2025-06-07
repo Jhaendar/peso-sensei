@@ -3,7 +3,7 @@
 import * as React from "react"
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   ChartConfig,
   ChartContainer,
@@ -18,9 +18,9 @@ interface ExpenseDistributionChartProps {
 }
 
 export function ExpenseDistributionChart({ data, config, title }: ExpenseDistributionChartProps) {
-  const totalValue = React.useMemo(() => {
-    return data.reduce((acc, curr) => acc + curr.value, 0)
-  }, [data])
+  // const totalValue = React.useMemo(() => { // Unused variable
+  //   return data.reduce((acc, curr) => acc + curr.value, 0)
+  // }, [data])
 
 
   if (!data || data.length === 0 || data.every(d => d.value === 0)) {

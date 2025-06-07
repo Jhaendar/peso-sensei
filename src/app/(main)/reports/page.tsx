@@ -134,7 +134,7 @@ function ReportsPageContent() {
       chartDataPointsMap[categoryName].value += t.amount;
     });
 
-    let chartDataPoints = Object.values(chartDataPointsMap).sort((a, b) => b.value - a.value);
+    const chartDataPoints = Object.values(chartDataPointsMap).sort((a, b) => b.value - a.value);
 
     if (dashboardData.currentBalance > 0 && dashboardData.totalIncome > 0) {
       const balanceCategoryName = "Balance";
@@ -153,7 +153,7 @@ function ReportsPageContent() {
     }
 
     return { overviewChartData: chartDataPoints, overviewChartConfig: dynamicChartConfig };
-  }, [transactions, categories, dashboardData.totalIncome, dashboardData.currentBalance, isLoadingCategories, isLoadingTransactions]);
+  }, [transactions, categories, dashboardData.totalIncome, dashboardData.currentBalance, dashboardData.totalExpenses, isLoadingCategories, isLoadingTransactions]);
 
   if (isLoadingCategories || (user && isLoadingTransactions && !transactions && !categoriesError)) {
     return (

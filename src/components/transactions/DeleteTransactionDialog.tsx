@@ -11,7 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button"; // This line is removed
 import { Trash2 } from "lucide-react";
 
 interface DeleteTransactionDialogProps {

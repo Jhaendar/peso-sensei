@@ -283,7 +283,7 @@ function CategoryManagerContent() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the category "{category.name}".
+                            This action cannot be undone. This will permanently delete the category &quot;{category.name}&quot;.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

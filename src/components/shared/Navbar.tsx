@@ -20,11 +20,19 @@ export function Navbar() {
   const { toast } = useToast();
 
   const handleLogout = async () => {
+    if (!auth) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "Firebase authentication is not initialized.",
+      });
+      return;
+    }
     try {
       await signOut(auth);
       toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
       router.push('/login');
-    } catch (error) {
+    } catch { // _error removed
       toast({ variant: 'destructive', title: 'Logout Failed', description: 'Could not log you out. Please try again.' });
     }
   };

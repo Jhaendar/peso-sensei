@@ -55,10 +55,10 @@ const fetchAllUserTransactions = async (userId: string | undefined): Promise<Tra
     }
 
     const rawCreatedAt = data.createdAt;
-    const jsCreatedAt = rawCreatedAt instanceof Timestamp ? rawCreatedAt.toDate() : new Date(rawCreatedAt as any);
+    const jsCreatedAt = rawCreatedAt instanceof Timestamp ? rawCreatedAt.toDate() : new Date(rawCreatedAt);
 
     const rawUpdatedAt = data.updatedAt;
-    const jsUpdatedAt = rawUpdatedAt ? (rawUpdatedAt instanceof Timestamp ? rawUpdatedAt.toDate() : new Date(rawUpdatedAt as any)) : undefined;
+    const jsUpdatedAt = rawUpdatedAt ? (rawUpdatedAt instanceof Timestamp ? rawUpdatedAt.toDate() : new Date(rawUpdatedAt)) : undefined;
 
     return {
       id: doc.id,
@@ -272,10 +272,10 @@ function TransactionsPageContent() {
     setIsEditDialogOpen(true);
   };
 
-  const handleCloseEditDialog = () => {
-    setIsEditDialogOpen(false);
-    setEditingTransaction(null);
-  };
+  // const handleCloseEditDialog = () => { // This function is unused
+  //   setIsEditDialogOpen(false);
+  //   setEditingTransaction(null);
+  // };
 
   const handleUpdateTransaction = async (data: TransactionFormData) => {
     if (!editingTransaction || !editingTransaction.id || !user?.uid) {
